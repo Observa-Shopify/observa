@@ -1,0 +1,15 @@
+<script>
+  window.ShopifyTraffic = {
+    shop: "{{ shop.permanent_domain }}"
+  };
+</script>
+
+<script src="{{ 'track-traffic.js' | asset_url }}" defer></script>
+
+{% schema %}
+{
+  "name": "Traffic Tracking",
+  "target": "head",
+  "settings": []
+}
+{% endschema %}

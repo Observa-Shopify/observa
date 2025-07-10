@@ -156,7 +156,7 @@
             console.log('Network:', metrics.network || 'Not available');
             console.groupEnd();
 
-            fetch('http://localhost:7244/api/vitals', {
+            fetch('http://localhost:3384/api/vitals', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(metrics)

@@ -8,13 +8,14 @@ import Vitals_view from "../components/Vitals_view";
 export const loader = async ({ request }) => {
     await authenticate.admin(request);
 
-    const baseUrl = "http://localhost:7244";
+    const baseUrl = "http://localhost:3384";
 
     try {
         const response = await fetch(`${baseUrl}/api/vitals`);
         const data = await response.json();
 
-        return json({ metrics: data.metrics || null });
+        return json({ metrics: typeof data === 'object' && data?.metrics ? data.metrics : {} });
+
     } catch (error) {
         console.error("Error loading metrics:", error);
         return json({ metrics: null });

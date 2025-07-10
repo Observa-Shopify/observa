@@ -30,3 +30,11 @@ model Session {
   collaborator  Boolean?  @default(false)
   emailVerified Boolean?  @default(false)
 }
+
+
+model TrafficEvent {
+  id         Int      @id @default(autoincrement())
+  shopDomain String
+  eventDate  DateTime
+  pageUrl    String?
+}

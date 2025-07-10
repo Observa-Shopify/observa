@@ -81,7 +81,11 @@ const badgeNames = {
 };
 
 const Vitals_view = ({ metrics }) => {
-    const mergedMetrics = { ...defaultMetrics, ...(metrics || {}) };
+    const mergedMetrics = {
+        ...defaultMetrics,
+        ...(metrics != null && typeof metrics === 'object' ? metrics : {})
+    };
+
 
     const { memory, network, ...mainMetrics } = mergedMetrics;
 
