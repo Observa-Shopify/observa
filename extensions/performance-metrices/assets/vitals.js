@@ -1,283 +1,169 @@
-/**
- * Function to log performance metrics to the console.
- * It uses PerformanceObserver to capture most metrics asynchronously.
- * It also includes initial navigation timing measurements.
- */
-function logPagePerformanceInsights() {
-    console.groupCollapsed('🚀 Initial Page Load Metrics');
+(function () {
+    const metrics = {
+        ttfb: 'N/A', fcp: 'N/A', lcp: 'N/A', fid: 'N/A', cls: '0.000',
+        domLoad: 'N/A', fullLoad: 'N/A', dnsTime: 'N/A', tcpTime: 'N/A',
+        sslTime: 'N/A', requestTime: 'N/A', responseTime: 'N/A',
+        domInteractive: 'N/A', firstPaint: 'N/A', totalBlockingTime: '0ms',
+        memory: null, network: null,
+    };
 
-    // --- 1. Basic Navigation Timing (Legacy but still useful for quick checks) ---
-    if (window.performance && window.performance.timing) {
-        const timing = window.performance.timing;
-        const navigationStart = timing.navigationStart;
+    const nav = performance.getEntriesByType('navigation')[0];
+    if (nav) {
+        const toMs = (v) => isFinite(v) && v >= 0 ? `${v.toFixed(0)}ms` : 'N/A';
 
-        console.log('--- Legacy Performance.timing Metrics ---');
-        console.log(`Navigation Start: ${navigationStart}ms`);
-        console.log(`Redirect Time: ${timing.redirectEnd - timing.redirectStart}ms`);
-        console.log(`DNS Lookup Time: ${timing.domainLookupEnd - timing.domainLookupStart}ms`);
-        console.log(`TCP Connection Time: ${timing.connectEnd - timing.connectStart}ms`);
-        console.log(`Time to First Byte (TTFB - Legacy): ${timing.responseStart - timing.requestStart}ms`);
-        console.log(`Response Time: ${timing.responseEnd - timing.responseStart}ms`);
-        console.log(`DOM Interactive: ${timing.domInteractive - navigationStart}ms`);
-        console.log(`DOM Content Loaded (Legacy): ${timing.domContentLoadedEventEnd - navigationStart}ms`);
-        console.log(`Full Page Load (Legacy): ${timing.loadEventEnd - navigationStart}ms`);
-        console.log(`Unload Event Time: ${timing.unloadEventEnd - timing.unloadEventStart}ms`);
-    } else {
-        console.warn('`window.performance.timing` not available.');
+        metrics.ttfb = toMs(nav.responseStart - nav.requestStart);
+        metrics.dnsTime = toMs(nav.domainLookupEnd - nav.domainLookupStart);
+        metrics.tcpTime = toMs(nav.connectEnd - nav.connectStart);
+        metrics.sslTime = nav.secureConnectionStart > 0 ? toMs(nav.connectEnd - nav.secureConnectionStart) : '0ms';
+        metrics.requestTime = toMs(nav.responseStart - nav.requestStart);
+        metrics.responseTime = toMs(nav.responseEnd - nav.responseStart);
+        metrics.domInteractive = toMs(nav.domInteractive - nav.startTime);
+        metrics.domLoad = toMs(nav.domContentLoadedEventEnd - nav.startTime);
+        metrics.fullLoad = nav.loadEventEnd > 0 ? toMs(nav.loadEventEnd - nav.startTime) : 'N/A';
+
+        console.log(`Time to first byte (TTFB): ${nav.responseStart - nav.requestStart}ms`);
+        console.log(`DOM Content Loaded: ${nav.domContentLoadedEventEnd - nav.navigationStart}ms`);
+        console.log(`Full Page Load: ${nav.loadEventEnd - nav.navigationStart}ms`);
     }
 
-    // --- 2. PerformanceNavigationTiming (More accurate navigation details) ---
-    if (window.performance && window.performance.getEntriesByType) {
-        const navTiming = window.performance.getEntriesByType('navigation')[0];
-        if (navTiming) {
-            console.log('\n--- PerformanceNavigationTiming Details ---');
-            console.log(`Entry Type: ${navTiming.entryType}`);
-            console.log(`Name: ${navTiming.name}`);
-            console.log(`Duration (Total): ${navTiming.duration.toFixed(2)}ms`);
-            console.log(`Start Time: ${navTiming.startTime.toFixed(2)}ms`);
-            console.log(`Initiator Type: ${navTiming.initiatorType}`);
-            console.log(`Next Hop Protocol: ${navTiming.nextHopProtocol}`);
-            console.log(`Secure Connection: ${navTiming.secureConnectionStart > 0 ? (navTiming.connectEnd - navTiming.secureConnectionStart).toFixed(2) + 'ms' : 'N/A'}`);
-            console.log(`Redirect Time (Navigation): ${navTiming.redirectEnd - navTiming.redirectStart}ms`);
-            console.log(`DNS Lookup Time (Navigation): ${navTiming.domainLookupEnd - navTiming.domainLookupStart}ms`);
-            console.log(`TCP Connect Time (Navigation): ${navTiming.connectEnd - navTiming.connectStart}ms`);
-            console.log(`Time to First Byte (TTFB): ${(navTiming.responseStart - navTiming.requestStart).toFixed(2)}ms (Good: < 800ms)`);
-            console.log(`Response Transfer Time: ${(navTiming.responseEnd - navTiming.responseStart).toFixed(2)}ms`);
-            console.log(`DOM Content Loaded: ${(navTiming.domContentLoadedEventEnd - navTiming.startTime).toFixed(2)}ms (Good: < 3000ms)`);
-            console.log(`Load Event Time: ${(navTiming.loadEventEnd - navTiming.startTime).toFixed(2)}ms`);
-        } else {
-            console.warn('`PerformanceNavigationTiming` entry not found.');
-        }
-    } else {
-        console.warn('`window.performance.getEntriesByType` not available for navigation timing.');
+    if (performance.memory) {
+        const mem = performance.memory;
+        metrics.memory = {
+            usedMB: +(mem.usedJSHeapSize / 1048576).toFixed(2),
+            totalMB: +(mem.totalJSHeapSize / 1048576).toFixed(2),
+            limitMB: +(mem.jsHeapSizeLimit / 1048576).toFixed(2),
+        };
     }
 
-    console.groupEnd(); // End Initial Page Load Metrics group
+    if (navigator.connection) {
+        metrics.network = {
+            type: navigator.connection.effectiveType,
+            rtt: navigator.connection.rtt,
+            downlink: navigator.connection.downlink,
+            saveData: navigator.connection.saveData
+        };
+    }
 
-    console.groupCollapsed('⚡ Real-time Metrics (via PerformanceObserver)');
+    let totalBlocking = 0;
 
-    let cumulativeLayoutShift = 0;
-    let totalBlockingTime = 0;
-    let lcpReported = false;
-    let fcpReported = false;
-    let inpValue = 0; // Will store the max interaction duration
+    const perfObserver = new PerformanceObserver((list) => {
+        list.getEntries().forEach(entry => {
+            switch (entry.entryType) {
+                case 'paint':
+                    if (entry.name === 'first-paint') {
+                        metrics.firstPaint = `${entry.startTime.toFixed(0)}ms`;
+                        console.log(`First Paint: ${entry.startTime}ms`);
+                    }
+                    if (entry.name === 'first-contentful-paint') {
+                        metrics.fcp = `${entry.startTime.toFixed(0)}ms`;
+                        console.log(`First Contentful Paint: ${entry.startTime}ms`);
+                    }
+                    break;
+                case 'largest-contentful-paint':
+                    metrics.lcp = `${entry.startTime.toFixed(0)}ms`;
+                    console.log(`Largest Contentful Paint: ${entry.startTime}ms`);
+                    break;
+                case 'layout-shift':
+                    if (!entry.hadRecentInput) metrics.cls = (parseFloat(metrics.cls) + entry.value).toFixed(3);
+                    break;
+                case 'first-input':
+                    const fid = entry.processingStart - entry.startTime;
+                    metrics.fid = isFinite(fid) ? `${fid.toFixed(0)}ms` : 'N/A';
+                    break;
+                case 'longtask':
+                    totalBlocking += Math.max(0, entry.duration - 50);
+                    console.log(`Long task detected: ${entry.name || 'anonymous'} - ${entry.duration}ms`);
+                    break;
+            }
+        });
+    });
 
-    // --- 3. PerformanceObserver for Core Web Vitals and other key metrics ---
+    perfObserver.observe({
+        entryTypes: ['paint', 'largest-contentful-paint', 'layout-shift', 'first-input', 'longtask'],
+        buffered: true
+    });
+
     if (window.PerformanceObserver) {
-        const observer = new PerformanceObserver((list) => {
+        const longTaskObserver = new PerformanceObserver((list) => {
             list.getEntries().forEach(entry => {
-                switch (entry.entryType) {
-                    case 'paint':
-                        // First Paint (FP) and First Contentful Paint (FCP)
-                        if (!fcpReported && entry.name === 'first-contentful-paint') {
-                            console.log(`\n--- First Contentful Paint (FCP) ---`);
-                            console.log(`FCP: ${entry.startTime.toFixed(2)}ms (Good: < 1800ms)`);
-                            fcpReported = true;
-                        } else if (entry.name === 'first-paint') {
-                            console.log(`First Paint (FP): ${entry.startTime.toFixed(2)}ms`);
-                        }
-                        break;
-
-                    case 'largest-contentful-paint':
-                        // Largest Contentful Paint (LCP)
-                        if (!lcpReported) {
-                            console.log(`\n--- Largest Contentful Paint (LCP) ---`);
-                            console.log(`LCP: ${entry.startTime.toFixed(2)}ms (Good: < 2500ms)`);
-                            console.log(`LCP Element: ${entry.element ? entry.element.tagName : 'N/A'}`);
-                            if (entry.element) {
-                                console.log('LCP Element HTML:', entry.element.outerHTML);
-                            }
-                            console.log(`LCP URL: ${entry.url || 'N/A'}`);
-                            lcpReported = true; // LCP can shift, you might want to log the final one or all
-                        }
-                        break;
-
-                    case 'layout-shift':
-                        // Cumulative Layout Shift (CLS)
-                        if (!entry.hadRecentInput) { // Exclude shifts directly caused by user interaction
-                            cumulativeLayoutShift += entry.value;
-                            console.log(`\n--- Cumulative Layout Shift (CLS) Update ---`);
-                            console.log(`Individual Shift Value: ${entry.value.toFixed(4)}`);
-                            console.log(`Current CLS: ${cumulativeLayoutShift.toFixed(4)} (Good: < 0.1)`);
-                            if (entry.sources && entry.sources.length > 0) {
-                                console.log('Layout Shift Sources:');
-                                entry.sources.forEach(source => {
-                                    console.log(`  Element: ${source.node ? source.node.outerHTML : 'N/A'}`);
-                                    console.log(`  Previous Rect: ${JSON.stringify(source.previousRect)}`);
-                                    console.log(`  Current Rect: ${JSON.stringify(source.currentRect)}`);
-                                });
-                            }
-                        }
-                        break;
-
-                    case 'longtask':
-                        // Total Blocking Time (TBT)
-                        // Note: TBT typically sums long tasks *between* FCP and TTI.
-                        // For simplicity here, we're just summing all long tasks.
-                        totalBlockingTime += entry.duration;
-                        console.log(`\n--- Long Task Detected ---`);
-                        console.log(`Task Name: ${entry.name || 'Anonymous'}`);
-                        console.log(`Start Time: ${entry.startTime.toFixed(2)}ms`);
-                        console.log(`Duration: ${entry.duration.toFixed(2)}ms`);
-                        console.log(`Current Total Blocking Time (TBT): ${totalBlockingTime.toFixed(2)}ms (Good: < 200ms)`);
-                        if (entry.attribution) {
-                            console.log('Attribution:', entry.attribution);
-                        }
-                        break;
-
-                    case 'resource':
-                        // Resource Timing
-                        console.groupCollapsed(`\n📦 Resource Loaded: ${entry.name.split('?')[0].slice(-50)}...`); // Show partial URL
-                        console.log(`Full URL: ${entry.name}`);
-                        console.log(`Initiator Type: ${entry.initiatorType}`);
-                        console.log(`Duration: ${entry.duration.toFixed(2)}ms`);
-                        console.log(`Transfer Size: ${entry.transferSize} bytes (${(entry.transferSize / 1024).toFixed(2)} KB)`);
-                        console.log(`Encoded Body Size: ${entry.encodedBodySize} bytes`);
-                        console.log(`Decoded Body Size: ${entry.decodedBodySize} bytes`);
-                        console.log(`Next Hop Protocol: ${entry.nextHopProtocol}`);
-                        console.log('Timing Breakdown:');
-                        console.table({
-                            'Fetch Start': entry.fetchStart.toFixed(2),
-                            'DNS Start': entry.domainLookupStart.toFixed(2),
-                            'DNS End': entry.domainLookupEnd.toFixed(2),
-                            'Connect Start': entry.connectStart.toFixed(2),
-                            'Connect End': entry.connectEnd.toFixed(2),
-                            'Request Start': entry.requestStart.toFixed(2),
-                            'Response Start': entry.responseStart.toFixed(2),
-                            'Response End': entry.responseEnd.toFixed(2)
-                        });
-                        console.groupEnd(); // End Resource Loaded group
-                        break;
-
-                    case 'mark':
-                    case 'measure':
-                        // User Timing
-                        console.log(`\n--- User Timing Entry: ${entry.entryType} ---`);
-                        console.log(`Name: ${entry.name}`);
-                        console.log(`Start Time: ${entry.startTime.toFixed(2)}ms`);
-                        if (entry.duration) {
-                            console.log(`Duration: ${entry.duration.toFixed(2)}ms`);
-                        }
-                        break;
-
-                    case 'event':
-                        // Interaction to Next Paint (INP) - this needs to be actively tracked and updated
-                        // INP is the longest duration of a set of interaction events, often excluding outliers.
-                        // This is a simplified approach, a dedicated library like 'web-vitals' is better for precise INP.
-                        const interactionTypes = ['click', 'mousedown', 'keydown', 'pointerdown']; // Common interaction types
-                        if (interactionTypes.includes(entry.name) && entry.duration > 0) {
-                            // Calculate interaction latency (input delay + processing time + presentation delay)
-                            const interactionLatency = entry.duration; // Simplified for this example
-                            if (interactionLatency > inpValue) {
-                                inpValue = interactionLatency;
-                                console.log(`\n--- Interaction to Next Paint (INP) Update ---`);
-                                console.log(`New Max Interaction (${entry.name}): ${inpValue.toFixed(2)}ms (Good: < 200ms)`);
-                                console.log(`Time to process event handlers: ${(entry.processingEnd - entry.processingStart).toFixed(2)}ms`);
-                                console.log(`Input delay: ${(entry.processingStart - entry.startTime).toFixed(2)}ms`);
-                            }
-                        }
-                        break;
-
-                    // Add more entry types for even deeper insights:
-                    // case 'long-animation-frame': // LoAFs (Experimental)
-                    //     console.log(`\n--- Long Animation Frame (LoAF) ---`);
-                    //     console.log(`Duration: ${entry.duration.toFixed(2)}ms`);
-                    //     console.log(`Scripts:`, entry.scripts); // Shows scripts contributing to the long frame
-                    //     break;
-                    // case 'element': // Element Timing (Experimental)
-                    //     console.log(`\n--- Element Timing ---`);
-                    //     console.log(`Element:`, entry.element);
-                    //     console.log(`Render Time: ${entry.renderTime.toFixed(2)}ms`);
-                    //     break;
+                if (entry.entryType === 'longtask') {
+                    console.log(`Long task detected: ${entry.name || 'anonymous'} - ${entry.duration}ms`);
                 }
             });
         });
+        longTaskObserver.observe({ entryTypes: ['longtask'] });
+    }
 
-        // Observe all relevant entry types
-        observer.observe({
-            entryTypes: [
-                'paint',
-                'largest-contentful-paint',
-                'layout-shift',
-                'longtask',
-                'resource',
-                'mark',
-                'measure',
-                'event', // For INP
-                // 'long-animation-frame', // Uncomment if supported and desired
-                // 'element' // Uncomment if supported and desired
-            ],
-            buffered: true // Get entries that occurred before the observer was created
+    if (window.PerformanceObserver) {
+        const paintObserver = new PerformanceObserver((list) => {
+            const entries = list.getEntries();
+            const fcpEntry = entries.find(entry => entry.name === 'first-contentful-paint');
+            if (fcpEntry) {
+                console.log(`First Contentful Paint: ${fcpEntry.startTime}ms`);
+                paintObserver.disconnect();
+            }
         });
+        paintObserver.observe({ type: 'paint', buffered: true });
+    }
 
-        // Optional: Disconnect observers after a certain time or event if you only need initial load data
-        // For continuous monitoring (like in an extension), you'd keep them active.
+    if (window.PerformanceObserver) {
+        const lcpObserver = new PerformanceObserver((list) => {
+            const entries = list.getEntries();
+            const lcpEntry = entries[entries.length - 1];
+            if (lcpEntry) {
+                console.log(`Largest Contentful Paint: ${lcpEntry.startTime}ms`);
+            }
+        });
+        lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
+    }
+
+    window.addEventListener('load', () => {
         setTimeout(() => {
-            console.groupEnd(); // End Real-time Metrics group
-            console.log('\n--- Summary of Core Web Vitals (Final if no more shifts/interactions) ---');
-            console.log(`Final Cumulative Layout Shift (CLS): ${cumulativeLayoutShift.toFixed(4)} (Good: < 0.1)`);
-            console.log(`Final Total Blocking Time (TBT): ${totalBlockingTime.toFixed(2)}ms (Good: < 200ms)`);
-            console.log(`Largest Interaction to Next Paint (INP): ${inpValue.toFixed(2)}ms (Good: < 200ms)`);
-            console.log('Note: LCP and FCP are logged when they occur. CLS, TBT, and INP are cumulative and updated.');
-            console.log('For continuous monitoring in an extension, consider sending data to a background script.');
-        }, 10000); // Wait 10 seconds to capture most initial load events
-    } else {
-        console.warn('`PerformanceObserver` not available for real-time metrics.');
-    }
+            if (metrics.fcp === 'N/A') {
+                const fcpEntry = performance.getEntriesByName('first-contentful-paint')[0];
+                if (fcpEntry) metrics.fcp = `${fcpEntry.startTime.toFixed(0)}ms`;
+            }
 
-    // --- 4. Memory Usage (Chrome-specific, non-standard) ---
-    if (window.performance && window.performance.memory) {
-        console.log('\n--- Memory Usage (Chrome-specific) ---');
-        console.log(`Total JS Heap Size: ${(window.performance.memory.totalJSHeapSize / (1024 * 1024)).toFixed(2)} MB`);
-        console.log(`Used JS Heap Size: ${(window.performance.memory.usedJSHeapSize / (1024 * 1024)).toFixed(2)} MB`);
-        console.log(`JS Heap Size Limit: ${(window.performance.memory.jsHeapSizeLimit / (1024 * 1024)).toFixed(2)} MB`);
-    } else {
-        console.warn('`window.performance.memory` not available or non-standard.');
-    }
+            if (metrics.lcp === 'N/A') {
+                const lcpEntries = performance.getEntriesByType('largest-contentful-paint');
+                if (lcpEntries.length) {
+                    const lastLcp = lcpEntries[lcpEntries.length - 1];
+                    metrics.lcp = `${lastLcp.startTime.toFixed(0)}ms`;
+                }
+            }
 
-    // --- 5. Network Information (Experimental/Non-standard in some browsers) ---
-    if (navigator.connection) {
-        console.log('\n--- Network Information (Navigator.connection) ---');
-        console.log(`Effective Connection Type: ${navigator.connection.effectiveType}`);
-        console.log(`Round-trip Time (RTT): ${navigator.connection.rtt}ms`);
-        console.log(`Downlink: ${navigator.connection.downlink} Mbps`);
-        console.log(`Save Data: ${navigator.connection.saveData ? 'Yes' : 'No'}`);
-    } else {
-        console.warn('`navigator.connection` not available or experimental.');
-    }
+            if (metrics.fullLoad === 'N/A') {
+                const navTiming = performance.getEntriesByType('navigation')[0];
+                if (navTiming && navTiming.loadEventEnd > 0) {
+                    const toMs = (v) => isFinite(v) && v >= 0 ? `${v.toFixed(0)}ms` : 'N/A';
+                    metrics.fullLoad = toMs(navTiming.loadEventEnd - navTiming.startTime);
+                }
+            }
 
-    // --- 6. Hardware Concurrency ---
-    if (navigator.hardwareConcurrency) {
-        console.log('\n--- Hardware Concurrency ---');
-        console.log(`Logical CPU Cores: ${navigator.hardwareConcurrency}`);
-    }
+            metrics.totalBlockingTime = `${Math.max(0, totalBlocking.toFixed(0))}ms`;
 
-    // --- Example of custom User Timing (if you control the page's JS) ---
-    // If you were inserting this into a page, you could add:
-    // performance.mark('myCustomStart');
-    // // ... some logic ...
-    // performance.mark('myCustomEnd');
-    // performance.measure('myCustomOperation', 'myCustomStart', 'myCustomEnd');
-    console.log('\n--- Note on User Timing ---');
-    console.log('Custom "mark" and "measure" entries will appear if the page uses `performance.mark()` and `performance.measure()`.');
-}
+            console.group('%c📊 Website Performance Metrics', 'color: green; font-weight: bold;');
+            console.log('Core Timings:', {
+                ttfb: metrics.ttfb, firstPaint: metrics.firstPaint, fcp: metrics.fcp,
+                lcp: metrics.lcp, fid: metrics.fid, cls: metrics.cls, totalBlockingTime: metrics.totalBlockingTime
+            });
+            console.log('Page Load Phases:', {
+                dnsTime: metrics.dnsTime, tcpTime: metrics.tcpTime, sslTime: metrics.sslTime,
+                requestTime: metrics.requestTime, responseTime: metrics.responseTime,
+                domInteractive: metrics.domInteractive, domLoad: metrics.domLoad, fullLoad: metrics.fullLoad
+            });
+            console.log('Memory:', metrics.memory || 'Not available');
+            console.log('Network:', metrics.network || 'Not available');
+            console.groupEnd();
 
-// Run the function to log insights
-if (document.readyState === 'complete') {
-    // If the page is already loaded, run immediately
-    logPagePerformanceInsights();
-} else {
-    // Otherwise, wait for the page to fully load
-    window.addEventListener('load', logPagePerformanceInsights);
-}
+            fetch('http://localhost:11124/api/vitals', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(metrics)
+            }).then(r => console.log('Metrics sent:', r.status))
+                .catch(e => console.error('Send failed:', e));
 
-// Also, listen for DOMContentLoaded for earlier metrics if needed
-window.addEventListener('DOMContentLoaded', () => {
-    const navigationEntry = performance.getEntriesByType('navigation')[0];
-    if (navigationEntry) {
-        console.log(`\n--- DOMContentLoaded Event Fired ---`);
-        console.log(`DOM Content Loaded (Event): ${(navigationEntry.domContentLoadedEventEnd - navigationEntry.startTime).toFixed(2)}ms`);
-    }
-});
-
-console.log('Performance insight collection initiated. Metrics will appear as they become available.');
+            window._SHOPIFY_PERF_METRICS_ = metrics;
+        }, 3000);
+    });
+})();
