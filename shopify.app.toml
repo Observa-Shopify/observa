@@ -3,7 +3,7 @@
 client_id = "22a9021f969e67bbec290063185dc852"
 name = "Performance Monitor"
 handle = "performance-monitor-1"
-application_url = "https://missing-louisville-yourself-leaders.trycloudflare.com"
+application_url = "https://manufacturing-incorrect-providing-hope.trycloudflare.com"
 embedded = true
 
 [build]
@@ -27,9 +27,9 @@ scopes = "write_products, read_orders, read_products, read_customers, write_cust
 
 [auth]
 redirect_urls = [
-  "https://missing-louisville-yourself-leaders.trycloudflare.com/auth/callback",
-  "https://missing-louisville-yourself-leaders.trycloudflare.com/auth/shopify/callback",
-  "https://missing-louisville-yourself-leaders.trycloudflare.com/api/auth/callback"
+  "https://manufacturing-incorrect-providing-hope.trycloudflare.com/auth/callback",
+  "https://manufacturing-incorrect-providing-hope.trycloudflare.com/auth/shopify/callback",
+  "https://manufacturing-incorrect-providing-hope.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

@@ -8,7 +8,7 @@ import Vitals_view from "../components/Vitals_view";
 export const loader = async ({ request }) => {
     await authenticate.admin(request);
 
-    const baseUrl = "http://localhost:11124";
+    const baseUrl = "http://localhost:7244";
 
     try {
         const response = await fetch(`${baseUrl}/api/vitals`);
