@@ -1,8 +1,8 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "30eb04ccb90771617547fd6f6ea5e70d"
-name = "observa"
-handle = "observa"
+client_id = "12cb9c291d7258d9570888f48b059038"
+name = "observa dev"
+handle = "observa-dev"
 application_url = "https://example.com/"
 embedded = true
 
