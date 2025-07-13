@@ -156,7 +156,7 @@
             console.log('Network:', metrics.network || 'Not available');
             console.groupEnd();
 
-            fetch('http://localhost:3384/api/vitals', {
+            fetch('https://ethical-loading-dc-divide.trycloudflare.com/api/vitals', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(metrics)

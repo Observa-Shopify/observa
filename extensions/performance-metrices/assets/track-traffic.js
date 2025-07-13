@@ -5,7 +5,7 @@
 
     if (!shop) return console.error("❌ No shop domain provided!");
 
-    fetch("https://ethical-loading-dc-divide.trycloudflare.com/api/track-traffic", {
+    fetch(`${process.env.APP_URL}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

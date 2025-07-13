@@ -3,11 +3,12 @@
 client_id = "12cb9c291d7258d9570888f48b059038"
 name = "observa dev"
 handle = "observa-dev"
-application_url = "https://example.com/"
+application_url = "https://artificial-oc-playstation-ra.trycloudflare.com"
 embedded = true
 
 [build]
 include_config_on_deploy = true
+automatically_update_urls_on_dev = true
 
 [webhooks]
 api_version = "2025-07"
@@ -17,7 +18,7 @@ api_version = "2025-07"
 scopes = "read_customers,read_orders,read_products,write_customers,write_products"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = ["https://artificial-oc-playstation-ra.trycloudflare.com/auth/callback", "https://artificial-oc-playstation-ra.trycloudflare.com/auth/shopify/callback", "https://artificial-oc-playstation-ra.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false
