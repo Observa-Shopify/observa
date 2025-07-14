@@ -9,27 +9,24 @@ generator client {
 // enough when changing adapters.
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
-  provider = "sqlite"
-  url      = "file:dev.sqlite"
+  provider = "postgresql"
+  url      = "postgres://postgres:Iq8PhvCs8kZXCtbEM9fX9XclhsSw29kXKCUJmIBbBMuYAelrNzJwy11hM5RLaXpd@152.53.124.245:5438/postgres"
 }
 
 model Session {
-  id            String    @id
-  shop          String
-  state         String
-  isOnline      Boolean   @default(false)
-  scope         String?
-  expires       DateTime?
-  accessToken   String
-  userId        BigInt?
-  firstName     String?
-  lastName      String?
-  email         String?
-  accountOwner  Boolean   @default(false)
-  locale        String?
-  collaborator  Boolean?  @default(false)
-  emailVerified Boolean?  @default(false)
+  id          String   @id
+  shop        String
+  state       String
+  isOnline    Boolean
+  scope       String?
+  expires     DateTime?
+  accessToken String
+  userId      BigInt?
+  sessionData Json     // ✅ REQUIRED for Shopify's adapter
+
+  @@index([shop])
 }
+
 
 
 model TrafficEvent {
@@ -37,4 +34,34 @@ model TrafficEvent {
   shopDomain String
   eventDate  DateTime
   pageUrl    String?
+}
+
+
+
+model Metric {
+  id                String   @id @default(cuid())
+  shop              String
+  createdAt         DateTime @default(now())
+  ttfb              Int? // Convert '162ms' to 162 before saving
+  fcp               Int?
+  lcp               Int?
+  fid               Int?
+  cls               Float?
+  domLoad           Int?
+  fullLoad          Int?
+  dnsTime           Int?
+  tcpTime           Int?
+  sslTime           Int?
+  requestTime       Int?
+  responseTime      Int?
+  domInteractive    Int?
+  firstPaint        Int?
+  totalBlockingTime Int?
+  usedMemoryMB      Float?
+  totalMemoryMB     Float?
+  limitMemoryMB     Float?
+  networkType       String?
+  rtt               Int?
+  downlink          Float?
+  saveData          Boolean?
 }

@@ -1,25 +1,44 @@
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
-import { Card, Text, BlockStack } from "@shopify/polaris";
+import { BlockStack } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
 import Vitals_view from "../components/Vitals_view";
+import { simulateStoreVisit } from "../helpers/simulateStoreVisit";
+import { saveMetricsToDB, getAggregatedMetrics } from "../helpers/metrics.server";
 
-// Load data from the resource route
+let visitTriggered = false;
 export const loader = async ({ request }) => {
-    await authenticate.admin(request);
+    const { session } = await authenticate.admin(request);
+    const shop = session.shop;
+    // const baseUrl = process.env.PUBLIC_APP_URL;
 
-    const baseUrl = `${process.env.APP_URL}`;
+    let apiCallSucceeded = false;
 
     try {
-        const response = await fetch(`${baseUrl}/api/vitals`);
+        const response = await fetch(`https://minimum-hunter-interference-cbs.trycloudflare.com/api/vitals`);
         const data = await response.json();
+        const metrics = data?.metrics;
 
-        return json({ metrics: typeof data === 'object' && data?.metrics ? data.metrics : {} });
+        console.log("metricccc", metrics)
 
+        if (metrics) {
+            apiCallSucceeded = true;
+            await saveMetricsToDB(shop, metrics);
+        } else if (!visitTriggered) {
+            visitTriggered = true;
+            simulateStoreVisit(shop); // fire-and-forget
+        }
     } catch (error) {
-        console.error("Error loading metrics:", error);
-        return json({ metrics: null });
+        console.error("Vitals API call failed:", error);
+        // Continue to fetch from DB anyway
     }
+
+    const aggregatedMetrics = await getAggregatedMetrics(shop);
+
+    return json({
+        metrics: aggregatedMetrics || null,
+        embedStatus: apiCallSucceeded, // could be used to detect if JS inject worked
+    });
 };
 
 

@@ -3,11 +3,12 @@
 client_id = "30eb04ccb90771617547fd6f6ea5e70d"
 name = "observa"
 handle = "observa"
-application_url = "https://example.com/"
+application_url = "https://liable-duke-paperback-hrs.trycloudflare.com"
 embedded = true
 
 [build]
 include_config_on_deploy = true
+automatically_update_urls_on_dev = true
 
 [webhooks]
 api_version = "2025-07"
@@ -17,7 +18,7 @@ api_version = "2025-07"
 scopes = "read_customers,read_orders,read_products,write_customers,write_products"
 
 [auth]
-redirect_urls = [ "https://example.com/api/auth" ]
+redirect_urls = ["https://liable-duke-paperback-hrs.trycloudflare.com/auth/callback", "https://liable-duke-paperback-hrs.trycloudflare.com/auth/shopify/callback", "https://liable-duke-paperback-hrs.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false

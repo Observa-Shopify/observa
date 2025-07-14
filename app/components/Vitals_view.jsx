@@ -7,9 +7,13 @@ import {
     BlockStack,
     Badge,
     InlineGrid,
+    EmptyState,
+    LegacyCard
 } from "@shopify/polaris";
-import { RadialBarChart, RadialBar, ResponsiveContainer } from "recharts";
+import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from "recharts";
 
+
+// Default shape for fallback
 const defaultMetrics = {
     cls: 0,
     ttfb: 0,
@@ -29,19 +33,14 @@ const parseMetricValue = (value) => {
 };
 
 const calculateScore = (key, value) => {
-    if (value == null) return 0;
+    if (value == null || value === 'N/A') return 0;
+    const numeric = parseMetricValue(value);
 
     switch (key) {
-        case 'ttfb':
-            return value < 200 ? 100 : value < 600 ? 60 : 20;
-        case 'fcp':
-            return value < 1000 ? 100 : value < 3000 ? 60 : 20;
-        case 'lcp':
-            return value < 2500 ? 100 : value < 4000 ? 60 : 20;
-        case 'cls': {
-            const clsVal = parseFloat(value);
-            return clsVal < 0.1 ? 100 : clsVal < 0.25 ? 60 : 20;
-        }
+        case 'ttfb': return numeric < 200 ? 100 : numeric < 600 ? 60 : 20;
+        case 'fcp': return numeric < 1000 ? 100 : numeric < 3000 ? 60 : 20;
+        case 'lcp': return numeric < 2500 ? 100 : numeric < 4000 ? 60 : 20;
+        case 'cls': return numeric < 0.1 ? 100 : numeric < 0.25 ? 60 : 20;
         case 'dnsTime':
         case 'sslTime':
         case 'tcpTime':
@@ -51,9 +50,9 @@ const calculateScore = (key, value) => {
         case 'domLoad':
         case 'totalBlockingTime':
         case 'fullLoad':
-            return value < 500 ? 100 : value < 1500 ? 60 : 20;
-        default:
-            return 100;  // Safe default for unknown metrics (green)
+        case 'fid':
+            return numeric < 500 ? 100 : numeric < 1500 ? 60 : 20;
+        default: return 100;
     }
 };
 
@@ -81,17 +80,37 @@ const badgeNames = {
 };
 
 const Vitals_view = ({ metrics }) => {
-    const mergedMetrics = {
-        ...defaultMetrics,
-        ...(metrics != null && typeof metrics === 'object' ? metrics : {})
-    };
+    const hasData = metrics && Object.entries(metrics).some(([key, value]) => {
+        if (typeof value === 'object' && value !== null) {
+            return Object.entries(value).some(([k, v]) => v !== null && v !== 0 && v !== '0');
+        }
+        return parseMetricValue(value) > 0;
+    });
 
+    console.log("Received metrics:", metrics);
+    console.log("Evaluated hasData:", hasData);
 
+    if (!hasData) {
+        return (
+            <div style={{ padding: '0 10px' }}>
+                <LegacyCard>
+                    <EmptyState
+                        heading="No Vitals to show"
+                        image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+                    >
+                        <p>Enable App Embed and visit your storefront to fetch vitals.</p>
+                    </EmptyState>
+                </LegacyCard>
+            </div>
+        );
+    }
+
+    const mergedMetrics = { ...defaultMetrics, ...metrics };
     const { memory, network, ...mainMetrics } = mergedMetrics;
 
     const renderCircularMetric = (key, value) => {
         const numericValue = parseMetricValue(value);
-        const score = calculateScore(key, numericValue);
+        const score = calculateScore(key, value);
         const color = getColor(score);
 
         const data = [
@@ -105,47 +124,64 @@ const Vitals_view = ({ metrics }) => {
             <Card key={key} roundedAbove="sm" padding="400" background="bg-surface-secondary">
                 <BlockStack gap="200" align="center">
                     <Text variant="headingSm" as="h3">{key.toUpperCase()}</Text>
-                    <div style={{ width: '100%', height: 120 }}>
+                    <div style={{ position: 'relative', width: '100%', height: 160 }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <RadialBarChart
                                 cx="50%"
                                 cy="50%"
                                 innerRadius="60%"
-                                outerRadius="100%"
-                                barSize={10}
+                                outerRadius="95%"
+                                barSize={2}
                                 data={data}
                                 startAngle={90}
                                 endAngle={-270}
                             >
+                                <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
                                 <RadialBar
                                     minAngle={15}
-                                    background
                                     clockWise
                                     dataKey="value"
+                                    background
+                                    cornerRadius={10}
                                 />
                             </RadialBarChart>
                         </ResponsiveContainer>
-                        <div style={{ position: 'relative', top: '-70px', textAlign: 'center' }}>
-                            <Text variant="bodyLg" fontWeight="bold">{value ?? '0'}</Text>
+
+                        {/* Centered Score Text */}
+                        <div
+                            style={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: '50%',
+                                transform: 'translate(-50%, -50%)',
+                                textAlign: 'center',
+                            }}
+                        >
+                            <Text variant="bodyLg" fontWeight="bold">{value}</Text>
+                            <Text variant="bodySm" tone="subdued">Score: {score}</Text>
                         </div>
+
                     </div>
-                    <Badge tone={score >= 90 ? 'success' : score >= 60 ? 'warning' : 'critical'}><span style={{ padding: '4px', display: 'block' }}>{badgeText}</span></Badge>
+
+
+                    <Badge tone={score >= 90 ? 'success' : score >= 60 ? 'warning' : 'critical'}>
+                        <span style={{ padding: '4px', display: 'block' }}>{badgeText}</span>
+                    </Badge>
                 </BlockStack>
             </Card>
         );
     };
 
     return (
-        <Page title="Performance Dashboard">
+        <Page title="Average Web Vitals (Aggregated)">
             <BlockStack gap="300">
                 <Grid columns={{ xs: 1, sm: 2, md: 3, lg: 3, xl: 4 }} gap="300">
                     {Object.entries(mainMetrics).map(([key, value]) => renderCircularMetric(key, value))}
                 </Grid>
 
-                <Card title="Memory Usage" roundedAbove="sm" padding="400" background="bg-surface-secondary" sectioned>
+                <Card title="Memory Usage (Avg)" roundedAbove="sm" padding="400" background="bg-surface-secondary" sectioned>
                     <BlockStack gap="300">
                         <Badge tone="highlight">Memory Info</Badge>
-
                         {Object.keys(memory).length > 0 ? (
                             <InlineGrid gap="400" columns={{ xs: 1, sm: 2, md: 3 }}>
                                 {['usedMB', 'totalMB', 'limitMB'].map((key) => {
@@ -153,10 +189,12 @@ const Vitals_view = ({ metrics }) => {
                                     const label = key.replace(/MB$/, '').toUpperCase();
 
                                     const usedMB = memory.usedMB ?? 0;
-                                    const limitMB = memory.limitMB ?? 1; // Avoid division by zero
+                                    const limitMB = memory.limitMB ?? 1;
                                     const remainingMB = Math.max(0, limitMB - usedMB).toFixed(2);
 
-                                    const progress = key === 'limitMB' ? 100 : Math.min(100, ((usedMB / limitMB) * 100).toFixed(0));
+                                    const progress = key === 'limitMB'
+                                        ? 100
+                                        : Math.min(100, ((usedMB / limitMB) * 100).toFixed(0));
                                     const progressColor = progress < 60 ? '#52c41a' : progress < 90 ? '#faad14' : '#ff4d4f';
 
                                     return (
@@ -172,7 +210,7 @@ const Vitals_view = ({ metrics }) => {
                                                                 width: '100%',
                                                                 backgroundColor: '#f4f4f4',
                                                                 borderRadius: '999px',
-                                                                height: '10px'
+                                                                height: '10px',
                                                             }}
                                                         >
                                                             <div
@@ -181,10 +219,11 @@ const Vitals_view = ({ metrics }) => {
                                                                     backgroundColor: progressColor,
                                                                     height: '100%',
                                                                     borderRadius: '999px',
-                                                                    transition: 'width 0.4s ease'
+                                                                    transition: 'width 0.4s ease',
                                                                 }}
                                                             />
                                                         </div>
+
                                                         <Text variant="bodySm" tone="subdued">
                                                             {usedMB} MB used / {limitMB} MB limit
                                                         </Text>
@@ -192,7 +231,6 @@ const Vitals_view = ({ metrics }) => {
                                                             Remaining: {remainingMB} MB
                                                         </Text>
                                                     </>
-
                                                 )}
                                             </BlockStack>
                                         </Card>
@@ -205,9 +243,9 @@ const Vitals_view = ({ metrics }) => {
                     </BlockStack>
                 </Card>
 
-                <Card title="Network Information" roundedAbove="sm" padding="400" background="bg-surface-secondary" sectioned>
+                <Card title="Network Information (Avg)" roundedAbove="sm" padding="400" background="bg-surface-secondary" sectioned>
                     <BlockStack gap="300">
-                        <Badge tone="caution">Real-Time Network Status</Badge>
+                        <Badge tone="caution">Network Status</Badge>
 
                         {Object.keys(network).length > 0 ? (
                             <InlineGrid gap="400" columns={{ xs: 1, sm: 2, md: 3 }}>
@@ -215,10 +253,9 @@ const Vitals_view = ({ metrics }) => {
                                     const value = network[key] ?? 'N/A';
                                     const label = key.toUpperCase();
 
-                                    let icon = '📶'; // Default icon
+                                    let icon = '📶';
                                     let displayValue = value;
 
-                                    // Assign better icons and formats
                                     if (key === 'downlink') {
                                         icon = '⬇️';
                                         displayValue = `${value} Mbps`;
@@ -231,7 +268,6 @@ const Vitals_view = ({ metrics }) => {
                                     }
 
 
-                                    // Color based on value (for fun + feedback)
                                     const numeric = parseFloat(value) || 0;
                                     const color = key === 'rtt'
                                         ? (numeric < 100 ? '#52c41a' : numeric < 300 ? '#faad14' : '#ff4d4f')
@@ -257,7 +293,6 @@ const Vitals_view = ({ metrics }) => {
                         )}
                     </BlockStack>
                 </Card>
-
             </BlockStack>
         </Page>
     );

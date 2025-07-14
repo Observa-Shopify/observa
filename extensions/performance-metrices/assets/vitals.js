@@ -156,7 +156,9 @@
             console.log('Network:', metrics.network || 'Not available');
             console.groupEnd();
 
-            fetch('https://ethical-loading-dc-divide.trycloudflare.com/api/vitals', {
+            // const baseUrl = process.env.PUBLIC_APP_URL;
+
+            fetch(`https://minimum-hunter-interference-cbs.trycloudflare.com/api/vitals`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(metrics)

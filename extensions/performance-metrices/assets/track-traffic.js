@@ -5,7 +5,7 @@
 
     if (!shop) return console.error("❌ No shop domain provided!");
 
-    fetch(`${process.env.APP_URL}`, {
+    fetch(`https://minimum-hunter-interference-cbs.trycloudflare.com/api/track-traffic`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
