@@ -158,7 +158,7 @@
 
             // const baseUrl = process.env.PUBLIC_APP_URL;
 
-            fetch(`https://minimum-hunter-interference-cbs.trycloudflare.com/api/vitals`, {
+            fetch(`https://eating-maria-express-expect.trycloudflare.com/api/vitals`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(metrics)

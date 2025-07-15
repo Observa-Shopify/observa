@@ -15,7 +15,7 @@ export const loader = async ({ request }) => {
     let apiCallSucceeded = false;
 
     try {
-        const response = await fetch(`https://minimum-hunter-interference-cbs.trycloudflare.com/api/vitals`);
+        const response = await fetch(`https://eating-maria-express-expect.trycloudflare.com/api/vitals`);
         const data = await response.json();
         const metrics = data?.metrics;
 

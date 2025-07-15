@@ -10,21 +10,25 @@ generator client {
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
   provider = "postgresql"
-  url      = "postgres://postgres:Iq8PhvCs8kZXCtbEM9fX9XclhsSw29kXKCUJmIBbBMuYAelrNzJwy11hM5RLaXpd@152.53.124.245:5438/postgres"
+  url      = env("DATABASE_URL")
 }
 
 model Session {
-  id          String   @id
-  shop        String
-  state       String
-  isOnline    Boolean
-  scope       String?
-  expires     DateTime?
-  accessToken String
-  userId      BigInt?
-  sessionData Json     // ✅ REQUIRED for Shopify's adapter
-
-  @@index([shop])
+  id            String    @id
+  shop          String
+  state         String
+  isOnline      Boolean   @default(false)
+  scope         String?
+  expires       DateTime?
+  accessToken   String
+  userId        BigInt?
+  firstName     String?
+  lastName      String?
+  email         String?
+  accountOwner  Boolean   @default(false)
+  locale        String?
+  collaborator  Boolean?  @default(false)
+  emailVerified Boolean?  @default(false)
 }
 
 

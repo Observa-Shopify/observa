@@ -10,8 +10,12 @@ import {
     EmptyState,
     LegacyCard
 } from "@shopify/polaris";
-import { RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis } from "recharts";
-
+import {
+    RadialBarChart,
+    RadialBar,
+    PolarAngleAxis,
+    ResponsiveContainer
+} from 'recharts';
 
 // Default shape for fallback
 const defaultMetrics = {
@@ -118,6 +122,16 @@ const Vitals_view = ({ metrics }) => {
             { name: 'remaining', value: 100 - score, fill: '#f0f0f0' }
         ];
 
+        const keysWithMs = [
+            'ttfb', 'fcp', 'lcp', 'fid', 'rtt', 'domLoad',
+            'fullLoad', 'tcpTime', 'ssl', 'dnsTime'
+        ];
+
+        const displayUnit = keysWithMs.includes(key.toLowerCase()) ? 'ms' : '';
+        const displayValue = numericValue !== null && !isNaN(numericValue)
+            ? `${numericValue} ${displayUnit}`.trim()
+            : 'N/A';
+
         const badgeText = badgeNames[key] || key;
 
         return (
@@ -157,7 +171,7 @@ const Vitals_view = ({ metrics }) => {
                                 textAlign: 'center',
                             }}
                         >
-                            <Text variant="bodyLg" fontWeight="bold">{value}</Text>
+                            <Text variant="bodyLg" fontWeight="bold">{displayValue}</Text>
                             <Text variant="bodySm" tone="subdued">Score: {score}</Text>
                         </div>
 
