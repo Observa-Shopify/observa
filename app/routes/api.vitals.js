@@ -1,47 +1,35 @@
 import { json } from "@remix-run/node";
-import { cors } from "remix-utils/cors";
 
 // Temporary store (Replace with DB later)
 let storedMetrics = null;
 
+const withCors = (request, response) => {
+  response.headers.set("Access-Control-Allow-Origin", "*");
+  response.headers.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type");
+  return response;
+};
+
 export const loader = async ({ request }) => {
   const response = json({ metrics: storedMetrics || null });
-  return cors(request, response, {
-    origin: "*",
-    methods: ["GET", "POST", "OPTIONS"],
-    headers: ["Content-Type"],
-  });
+  return withCors(request, response);
 };
 
 export const action = async ({ request }) => {
   const method = request.method;
 
   if (method === "OPTIONS") {
-    return cors(request, new Response(null, { status: 204 }), {
-      origin: "*",
-      methods: ["GET", "POST", "OPTIONS"],
-      headers: ["Content-Type"],
-    });
+    return withCors(request, new Response(null, { status: 204 }));
   }
 
   if (method === "POST") {
     try {
       const data = await request.json();
-      // console.log("Received Metrics:", data);
       storedMetrics = data;
-
-      return cors(request, json({ success: true }), {
-        origin: "*",
-        methods: ["GET", "POST", "OPTIONS"],
-        headers: ["Content-Type"],
-      });
+      return withCors(request, json({ success: true }));
     } catch (error) {
       console.error("Invalid JSON:", error);
-      return cors(request, new Response("Invalid data", { status: 400 }), {
-        origin: "*",
-        methods: ["GET", "POST", "OPTIONS"],
-        headers: ["Content-Type"],
-      });
+      return withCors(request, new Response("Invalid data", { status: 400 }));
     }
   }
 
