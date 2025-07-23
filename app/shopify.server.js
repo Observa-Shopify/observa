@@ -7,9 +7,6 @@ import {
 import { PrismaSessionStorage } from "@shopify/shopify-app-session-storage-prisma";
 import prisma from "./db.server";
 
-// ✅ ADDED: import your pixel creator
-import { createWebPixel } from "./helpers/create-web-pixel";
-
 const shopify = shopifyApp({
   apiKey: process.env.SHOPIFY_API_KEY,
   apiSecretKey: process.env.SHOPIFY_API_SECRET || "",
@@ -26,20 +23,6 @@ const shopify = shopifyApp({
   ...(process.env.SHOP_CUSTOM_DOMAIN
     ? { customShopDomains: [process.env.SHOP_CUSTOM_DOMAIN] }
     : {}),
-
-  // ✅ ADDED: Hook to create pixel after app install
-  hooks: {
-    afterAuth: async ({ session }) => {
-      console.log(`✅ App installed on: ${session.shop}`);
-
-      try {
-        const accountID = "123";
-        await createWebPixel(session, accountID);
-      } catch (error) {
-        console.error("❌ Failed to create pixel after install:", error);
-      }
-    }
-  }
 });
 
 export default shopify;

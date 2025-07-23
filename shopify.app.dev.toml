@@ -3,7 +3,7 @@
 client_id = "12cb9c291d7258d9570888f48b059038"
 name = "observa dev"
 handle = "observa-dev"
-application_url = "https://nonprofit-dozens-liberia-known.trycloudflare.com"
+application_url = "https://snake-enrollment-ministry-mortgages.trycloudflare.com"
 embedded = true
 
 [build]
@@ -15,10 +15,10 @@ api_version = "2025-07"
 
 [access_scopes]
 # Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
-scopes = "read_customers,read_orders,read_products,write_customers,write_products, write_pixels, read_pixels, read_customer_events"
+scopes = "read_orders,write_orders,write_products, write_pixels, read_pixels, read_customers, read_checkouts, read_customer_events"
 
 [auth]
-redirect_urls = ["https://nonprofit-dozens-liberia-known.trycloudflare.com/auth/callback", "https://nonprofit-dozens-liberia-known.trycloudflare.com/auth/shopify/callback", "https://nonprofit-dozens-liberia-known.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://snake-enrollment-ministry-mortgages.trycloudflare.com/auth/callback", "https://snake-enrollment-ministry-mortgages.trycloudflare.com/auth/shopify/callback", "https://snake-enrollment-ministry-mortgages.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false
