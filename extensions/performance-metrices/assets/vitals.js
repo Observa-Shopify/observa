@@ -158,7 +158,7 @@
 
             // const baseUrl = process.env.PUBLIC_APP_URL;
 
-            fetch(`https://nominated-katie-ethnic-allowing.trycloudflare.com/api/vitals`, {
+            fetch(`https://alert-until-metro-drove.trycloudflare.com/api/vitals`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(metrics)

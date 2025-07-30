@@ -5,7 +5,7 @@
 
     if (!shop) return console.error("❌ No shop domain provided!");
 
-    fetch(`https://nominated-katie-ethnic-allowing.trycloudflare.com/api/track-traffic`, {
+    fetch(`https://alert-until-metro-drove.trycloudflare.com/api/track-traffic`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
