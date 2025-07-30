@@ -1,14 +1,17 @@
+// extensions/pixel/src/index.js
 import { register } from "@shopify/web-pixels-extension";
 
 register(({ analytics, browser, settings }) => {
   const SESSION_COOKIE_NAME = 'my_shop_session_id';
   const COOKIE_LIFETIME_SECONDS = 60 * 60; // 1 hour
-  const TRACK_ENDPOINT = 'https://snake-enrollment-ministry-mortgages.trycloudflare.com/api/pixel-payload';
+  const CHECKOUT_COMPLETED_EXPIRY_SECONDS = 0;
+
+  const TRACK_ENDPOINT = 'https://nominated-katie-ethnic-allowing.trycloudflare.com/api/pixel-payload';
 
   console.log('[Web Pixel] Shop:', settings.shop);
   console.log('[Web Pixel] Shop Domain:', settings.shopDomain);
 
-  const reportEventToBackend = async (eventName) => {
+  const reportEventToBackend = async (eventName, expireImmediately = false) => {
     try {
       let sessionId = await browser.cookie.get(SESSION_COOKIE_NAME);
 
@@ -19,17 +22,16 @@ register(({ analytics, browser, settings }) => {
         console.log('[Web Pixel] Existing session ID:', sessionId);
       }
 
+      const expirySeconds = expireImmediately ? CHECKOUT_COMPLETED_EXPIRY_SECONDS : COOKIE_LIFETIME_SECONDS;
+
       await browser.cookie.set(SESSION_COOKIE_NAME, sessionId, {
-        expires: COOKIE_LIFETIME_SECONDS,
+        expires: expirySeconds,
         path: '/',
         secure: true,
         sameSite: 'Lax',
       });
 
-      const shopDomain =
-        typeof location !== 'undefined'
-          ? `https://${location.hostname}`
-          : settings.shopDomain;
+      const shopDomain = typeof location !== 'undefined' ? `https://${location.hostname}` : settings.shopDomain;
 
       console.log(`[Web Pixel] Reporting event '${eventName}' for session ${sessionId} to server.`);
 
@@ -40,8 +42,8 @@ register(({ analytics, browser, settings }) => {
         },
         body: JSON.stringify({
           shop: shopDomain,
-          sessionId,
-          eventName,
+          sessionId: sessionId,
+          eventName: eventName,
         }),
       });
 
@@ -60,7 +62,11 @@ register(({ analytics, browser, settings }) => {
     reportEventToBackend('checkout_started');
   });
 
-  // Example of how to add more events:
+  analytics.subscribe('checkout_completed', () => {
+    reportEventToBackend('checkout_completed', true);
+  });
+
+  // Example for additional events:
   // analytics.subscribe('product_viewed', () => {
   //   reportEventToBackend('product_viewed');
   // });

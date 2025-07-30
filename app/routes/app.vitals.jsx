@@ -12,10 +12,12 @@ export const loader = async ({ request }) => {
     const shop = session.shop;
     // const baseUrl = process.env.PUBLIC_APP_URL;
 
+    const PUBLIC_APP_URL = process.env.PUBLIC_APP_URL
+
     let apiCallSucceeded = false;
 
     try {
-        const response = await fetch(`https://eating-maria-express-expect.trycloudflare.com/api/vitals`);
+        const response = await fetch(`${PUBLIC_APP_URL}/api/vitals`);
         const data = await response.json();
         const metrics = data?.metrics;
 
