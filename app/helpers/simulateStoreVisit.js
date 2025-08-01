@@ -1,4 +1,6 @@
+
 import puppeteer from "puppeteer";
+import { API_TIMEOUT } from '../config/index.js';
 
 export async function simulateStoreVisit(storeUrl) {
   const browser = await puppeteer.launch({ headless: "new" });
@@ -10,7 +12,7 @@ export async function simulateStoreVisit(storeUrl) {
     : `https://${storeUrl}`;
 
   try {
-    await page.goto(visitURL, { waitUntil: "load", timeout: 10000 });
+    await page.goto(visitURL, { waitUntil: "load", timeout: API_TIMEOUT });
     console.log(`✅ Visited ${visitURL} to trigger vitals script`);
 
     // Wait to let vitals script execute (e.g., web-vitals)

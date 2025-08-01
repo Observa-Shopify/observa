@@ -1,3 +1,6 @@
+
+import { API_TIMEOUT } from '../config/index.js';
+
 export async function fetchOrderCount({ admin }) {
   const QUERY = `
     query fetchOrderIds($cursor: String) {
@@ -21,8 +24,10 @@ export async function fetchOrderCount({ admin }) {
 
   try {
     while (hasNextPage) {
+      // Optionally use API_TIMEOUT in your requests
       const response = await admin.graphql(QUERY, {
         variables: { cursor },
+        // timeout: API_TIMEOUT, // Uncomment if supported
       });
 
       const json = await response.json();

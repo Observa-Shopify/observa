@@ -10,6 +10,7 @@ export async function saveMetricsToDB(shop, metrics) {
     const parseFloatSafe = (value) =>
         isNaN(parseFloat(value)) ? null : parseFloat(value);
 
+    // No magic values here, but if you add more, import from config/constants.js
     return await prisma.metric.create({
         data: {
             shop,
