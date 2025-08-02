@@ -6,7 +6,7 @@ register(({ analytics, browser, settings }) => {
   const COOKIE_LIFETIME_SECONDS = 60 * 60; // 1 hour
   const CHECKOUT_COMPLETED_EXPIRY_SECONDS = 0;
 
-  const TRACK_ENDPOINT = 'https://alert-until-metro-drove.trycloudflare.com/api/pixel-payload';
+  const TRACK_ENDPOINT = 'https://observa-two.vercel.app/api/pixel-payload';
 
   console.log('[Web Pixel] Shop:', settings.shop);
   console.log('[Web Pixel] Shop Domain:', settings.shopDomain);

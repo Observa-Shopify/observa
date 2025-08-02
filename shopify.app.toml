@@ -3,7 +3,7 @@
 client_id = "30eb04ccb90771617547fd6f6ea5e70d"
 name = "observa"
 handle = "observa"
-application_url = "https://mr-divide-omissions-competitions.trycloudflare.com"
+application_url = "https://observa-two.vercel.app"
 embedded = true
 
 [build]
@@ -31,9 +31,9 @@ scopes = "read_customers,read_orders,read_products,write_customers,write_product
 
 [auth]
 redirect_urls = [
-  "https://mr-divide-omissions-competitions.trycloudflare.com/auth/callback",
-  "https://mr-divide-omissions-competitions.trycloudflare.com/auth/shopify/callback",
-  "https://mr-divide-omissions-competitions.trycloudflare.com/api/auth/callback"
+  "https://observa-two.vercel.app/auth/callback",
+  "https://observa-two.vercel.app/auth/shopify/callback",
+  "https://observa-two.vercel.app/api/auth/callback"
 ]
 
 [pos]
