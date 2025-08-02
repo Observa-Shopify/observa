@@ -1,5 +1,7 @@
 
-import { API_TIMEOUT } from '../config/index.js';
+import { APP_CONSTANTS } from '../utils';
+
+const { API_TIMEOUT } = APP_CONSTANTS;
 
 export async function fetchOrderCount({ admin }) {
   const QUERY = `

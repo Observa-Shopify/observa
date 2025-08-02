@@ -14,6 +14,7 @@ import { authenticate } from "../shopify.server";
 import { 
   MetricCard, 
   StatsGrid, 
+  ChartWrapper,
   SparkChart,
   LoadingState
 } from "../components/shared";
@@ -186,11 +187,13 @@ export default function TrafficDashboard() {
                 formatValue={false}
                 badge={{ text: trafficStatusLabel, tone: trafficStatusColor }}
                 chart={
-                  <SparkChart
-                    data={chartData}
-                    color={APP_CONSTANTS.COLORS.PRIMARY}
-                    accessibilityLabel="Traffic trend"
-                  />
+                  <ChartWrapper>
+                    <SparkChart
+                      data={chartData}
+                      color={APP_CONSTANTS.COLORS.PRIMARY}
+                      accessibilityLabel="Traffic trend"
+                    />
+                  </ChartWrapper>
                 }
               />
 
@@ -222,11 +225,13 @@ export default function TrafficDashboard() {
             <Card>
               <BlockStack gap="400">
                 <Text as="h2" variant="headingLg">Last 30 Days Traffic</Text>
-                <SparkChart
-                  data={chartData}
-                  color={APP_CONSTANTS.COLORS.PRIMARY}
-                  accessibilityLabel="30-day traffic trend"
-                />
+                <ChartWrapper>
+                  <SparkChart
+                    data={chartData}
+                    color={APP_CONSTANTS.COLORS.PRIMARY}
+                    accessibilityLabel="30-day traffic trend"
+                  />
+                </ChartWrapper>
               </BlockStack>
             </Card>
           </>
@@ -235,4 +240,3 @@ export default function TrafficDashboard() {
     </Page>
   );
 }
-

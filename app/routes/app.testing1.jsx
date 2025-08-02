@@ -3,23 +3,29 @@ import { useLoaderData, useNavigation } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
 import {
   Page,
-  Card,
-  Text,
   BlockStack,
   EmptyState,
-  DataTable,
-  Pagination,
-  Box,
-  InlineStack,
   Spinner,
-  LegacyCard // Using LegacyCard for a slightly different visual if desired, or stick to Card
 } from "@shopify/polaris";
-// Removed all icon imports as requested
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
+import { 
+  MetricCard, 
+  StatsGrid, 
+  EnhancedDataTable,
+  LoadingState 
+} from '../components/shared';
+import { 
+  usePagination,
+  APP_CONSTANTS,
+  formatDate,
+  formatCurrency,
+  calculatePercentageChange,
+  getBadgeTone
+} from '../utils';
 
 
 // Helper function to format date for display
-const formatDate = (dateString) => {
+const formatDateDisplay = (dateString) => {
   if (!dateString) return 'N/A';
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
@@ -161,7 +167,7 @@ export const loader = async ({ request }) => {
   });
 };
 
-export default function Dashboard() {
+export default function SalesDashboard() {
   const {
     orders,
     totalSales,
@@ -176,143 +182,118 @@ export default function Dashboard() {
   const navigation = useNavigation();
   const isLoading = navigation.state === 'loading' || navigation.state === 'submitting';
 
-  const [currentPage, setCurrentPage] = useState(0);
-  const itemsPerPage = 10;
+  // Pagination for orders table
+  const {
+    currentPage,
+    totalPages,
+    paginatedItems: paginatedOrders,
+    handleNextPage,
+    handlePreviousPage,
+    hasNextPage,
+    hasPreviousPage,
+  } = usePagination(orders, APP_CONSTANTS.DEFAULT_ITEMS_PER_PAGE);
 
-  const totalPages = Math.ceil(orders.length / itemsPerPage);
-
-  const paginatedOrders = useMemo(() => {
-    const startIndex = currentPage * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    return orders.slice(startIndex, endIndex);
-  }, [orders, currentPage, itemsPerPage]);
-
-  const handleNextPage = () => {
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages - 1));
-  };
-
-  const handlePreviousPage = () => {
-    setCurrentPage((prev) => Math.max(prev - 1, 0));
-  };
-
-  const rows = paginatedOrders.map(order => [
+  // Prepare table data
+  const tableRows = paginatedOrders.map(order => [
     order.name,
-    `${order.currencyCode} ${order.amount.toFixed(2)}`,
+    formatCurrency(order.amount, order.currencyCode),
     formatDate(order.createdAt),
   ]);
 
-  // Determine color for sales growth status (no icons)
-  const getGrowthTone = (status) => {
-    switch (status) {
-      case 'Growth Up':
-        return 'success';
-      case 'Growth Down':
-        return 'critical';
-      case 'No Change':
-        return 'warning';
-      case 'New Sales':
-      case 'New Data':
-        return 'success'; // Treat new sales as positive growth
-      default: // N/A, No Sales Data, No AOV Data
-        return 'subdued';
-    }
-  };
+  const tableColumns = ['Order Name', 'Total Price', 'Created At'];
 
-  const salesGrowthTone = getGrowthTone(salesGrowthStatus);
-  const aovGrowthTone = getGrowthTone(averageOrderValueGrowthStatus);
+  // Calculate average order value
+  const currentAOV = current7DaysSales / (orders.filter(o => 
+    new Date(o.createdAt) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  ).length || 1);
+
+  const previousAOV = previous7DaysSales / (orders.filter(o => {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+    const orderDate = new Date(o.createdAt);
+    return orderDate >= twoWeeksAgo && orderDate < weekAgo;
+  }).length || 1);
+
+  // Get badge tones for growth indicators
+  const salesGrowthTone = getBadgeTone('growth', salesGrowthPercentage, {
+    GOOD: 5,
+    AVERAGE: 0
+  });
+
+  const aovGrowthTone = getBadgeTone('growth', averageOrderValueGrowthPercentage, {
+    GOOD: 5,
+    AVERAGE: 0
+  });
+
+  if (isLoading) {
+    return (
+      <Page title="Sales Dashboard" fullWidth>
+        <LoadingState message="Loading sales data..." />
+      </Page>
+    );
+  }
 
   return (
     <Page title="Sales Dashboard" fullWidth>
       <BlockStack gap="500">
-        {isLoading ? (
-          <Box padding="500" alignment="center">
-            <Spinner accessibilityLabel="Loading orders" size="large" />
-            <Text as="p" alignment="center" variant="bodyLg" tone="subdued">Loading dashboard data...</Text>
-          </Box>
+        {/* Key Sales Metrics */}
+        <StatsGrid columns={{ xs: 1, sm: 2, lg: 3 }}>
+          <MetricCard
+            title="Total Sales"
+            value={formatCurrency(totalSales)}
+            formatValue={false}
+            subtitle="Overall sales volume"
+            badge={{ text: 'Total', tone: 'info' }}
+          />
+
+          <MetricCard
+            title="Sales Growth (7 days)"
+            value={salesGrowthStatus === 'N/A' || salesGrowthStatus === 'No Sales Data' 
+              ? salesGrowthStatus 
+              : `${salesGrowthPercentage.toFixed(2)}%`}
+            formatValue={false}
+            subtitle={`Current: ${formatCurrency(current7DaysSales)} | Previous: ${formatCurrency(previous7DaysSales)}`}
+            badge={{ text: salesGrowthStatus, tone: salesGrowthTone }}
+          />
+
+          <MetricCard
+            title="Avg. Order Value Growth"
+            value={averageOrderValueGrowthStatus === 'N/A' || averageOrderValueGrowthStatus === 'No AOV Data' 
+              ? averageOrderValueGrowthStatus 
+              : `${averageOrderValueGrowthPercentage.toFixed(2)}%`}
+            formatValue={false}
+            subtitle={`Current AOV: ${formatCurrency(currentAOV)} | Previous: ${formatCurrency(previousAOV)}`}
+            badge={{ text: averageOrderValueGrowthStatus, tone: aovGrowthTone }}
+          />
+        </StatsGrid>
+
+        {/* Orders Table */}
+        {orders.length === 0 ? (
+          <EmptyState
+            heading="No orders found"
+            action={{ 
+              content: 'Go to Shopify admin', 
+              url: 'https://admin.shopify.com',
+              external: true 
+            }}
+            image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
+          >
+            <p>Your store doesn't have any orders yet.</p>
+          </EmptyState>
         ) : (
-          <>
-            {/* Sales and Analytics Cards */}
-            <InlineStack gap="400" wrap={true} align="stretch">
-              {/* Total Sales Card - Enhanced */}
-              <Card background="bg-surface-active" sectioned flexGrow={1}>
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h2" variant="headingMd" tone="subdued">TOTAL SALES</Text>
-                  {/* Removed Icon */}
-                </InlineStack>
-                <Box paddingBlockStart="200">
-                  <Text as="p" variant="heading2xl" tone="success">
-                    ${totalSales.toFixed(2)}
-                  </Text>
-                </Box>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Overall sales volume.
-                </Text>
-              </Card>
-
-              {/* Sales Growth Card - Enhanced */}
-              <Card background="bg-surface-active" sectioned flexGrow={1}>
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h2" variant="headingMd" tone="subdued">SALES GROWTH</Text>
-                  {/* Removed Icon */}
-                </InlineStack>
-                <Box paddingBlockStart="200">
-                  <Text as="p" variant="heading2xl" tone={salesGrowthTone}>
-                    {salesGrowthStatus === 'N/A' || salesGrowthStatus === 'No Sales Data' ? salesGrowthStatus : `${salesGrowthPercentage.toFixed(2)}%`}
-                  </Text>
-                </Box>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Last 7 Days: ${current7DaysSales.toFixed(2)} | Prior 7 Days: ${previous7DaysSales.toFixed(2)}
-                </Text>
-              </Card>
-
-              {/* Avg. Order Value Growth Card - Enhanced */}
-              <Card background="bg-surface-active" sectioned flexGrow={1}>
-                <InlineStack align="space-between" blockAlign="center">
-                  <Text as="h2" variant="headingMd" tone="subdued">AVG. ORDER VALUE GROWTH</Text>
-                  {/* Removed Icon */}
-                </InlineStack>
-                <Box paddingBlockStart="200">
-                  <Text as="p" variant="heading2xl" tone={aovGrowthTone}>
-                    {averageOrderValueGrowthStatus === 'N/A' || averageOrderValueGrowthStatus === 'No AOV Data' ? averageOrderValueGrowthStatus : `${averageOrderValueGrowthPercentage.toFixed(2)}%`}
-                  </Text>
-                </Box>
-                <Text as="p" variant="bodySm" tone="subdued">
-                  Compares average order value over time.
-                </Text>
-              </Card>
-            </InlineStack>
-
-            {/* Recent Orders Table */}
-            <Card sectioned>
-              <Text as="h2" variant="headingLg">Recent Orders</Text>
-              {orders.length === 0 ? (
-                <EmptyState
-                  heading="No orders found"
-                  action={{ content: 'Go to Shopify admin', url: 'https://admin.shopify.com' }}
-                  image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
-                >
-                  <p>Your store doesn't have any orders yet.</p>
-                </EmptyState>
-              ) : (
-                <BlockStack gap="400">
-                  <DataTable
-                    columnContentTypes={['text', 'numeric', 'text']}
-                    headings={['Order Name', 'Total Price', 'Created At']}
-                    rows={rows}
-                  />
-                  <Box paddingBlockStart="400">
-                    <Pagination
-                      hasPrevious={currentPage > 0}
-                      onPrevious={handlePreviousPage}
-                      hasNext={currentPage < totalPages - 1}
-                      onNext={handleNextPage}
-                      label={`Page ${currentPage + 1} of ${totalPages}`}
-                    />
-                  </Box>
-                </BlockStack>
-              )}
-            </Card>
-          </>
+          <EnhancedDataTable
+            title="Recent Orders"
+            data={tableRows}
+            columns={tableColumns}
+            columnContentTypes={['text', 'text', 'text']}
+            searchable={false}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            hasNextPage={hasNextPage}
+            hasPreviousPage={hasPreviousPage}
+            onNextPage={handleNextPage}
+            onPreviousPage={handlePreviousPage}
+          />
         )}
       </BlockStack>
     </Page>

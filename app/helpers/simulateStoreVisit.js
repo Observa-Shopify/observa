@@ -1,6 +1,9 @@
 
 import puppeteer from "puppeteer";
-import { API_TIMEOUT } from '../config/index.js';
+import fetch from 'node-fetch';
+import { APP_CONSTANTS } from '../utils';
+
+const { API_TIMEOUT } = APP_CONSTANTS;
 
 export async function simulateStoreVisit(storeUrl) {
   const browser = await puppeteer.launch({ headless: "new" });

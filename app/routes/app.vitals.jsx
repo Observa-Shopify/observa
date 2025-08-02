@@ -1,8 +1,8 @@
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
-import { BlockStack } from "@shopify/polaris";
+import { BlockStack, Page } from "@shopify/polaris";
 import { authenticate } from "../shopify.server";
-import Vitals_view from "../components/Vitals_view";
+import VitalsView from "../components/VitalsView";
 import { simulateStoreVisit } from "../helpers/simulateStoreVisit";
 import { saveMetricsToDB, getAggregatedMetrics } from "../helpers/metrics.server";
 
@@ -48,10 +48,10 @@ export default function VitalsPage() {
     const { metrics } = useLoaderData();
 
     return (
-        <>
-            <BlockStack gap={300}>
-                <Vitals_view metrics={metrics} />
+        <Page title="Core Web Vitals" fullWidth>
+            <BlockStack gap="400">
+                <VitalsView metrics={metrics} />
             </BlockStack>
-        </>
+        </Page>
     );
 }

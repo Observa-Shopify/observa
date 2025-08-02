@@ -4,10 +4,28 @@ import { useLoaderData } from '@remix-run/react';
 import { authenticate } from '../shopify.server';
 import prisma from '../db.server';
 import {
-  Page, Text, Card, DataTable, LegacyStack, Pagination,
-  BlockStack, InlineGrid, TextField, Box
+  Page,
+  BlockStack,
 } from '@shopify/polaris';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+import { 
+  MetricCard, 
+  StatsGrid, 
+  ProgressCircle,
+  EnhancedDataTable,
+  SparkChart,
+  LineChart,
+  BarChart,
+  LoadingState 
+} from '../components/shared';
+import { 
+  usePagination, 
+  useSearch, 
+  useClientOnly,
+  APP_CONSTANTS,
+  formatNumber,
+  formatDate
+} from '../utils';
 
 // --- Loader Function ---
 export const loader = async ({ request }) => {
@@ -137,48 +155,6 @@ export const loader = async ({ request }) => {
   });
 };
 
-const ProgressBarCircle = ({ percentage, color = '#47C1BF', size = 50, strokeWidth = 5, showText = true }) => {
-  const radius = (size / 2) - (strokeWidth / 2);
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (percentage / 100) * circumference;
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle
-        stroke="#E1E3E5"
-        fill="transparent"
-        strokeWidth={strokeWidth}
-        r={radius}
-        cx={size / 2}
-        cy={size / 2}
-      />
-      <circle
-        stroke={color}
-        fill="transparent"
-        strokeWidth={strokeWidth}
-        strokeDasharray={`${circumference} ${circumference}`}
-        strokeDashoffset={offset}
-        strokeLinecap="round"
-        r={radius}
-        cx={size / 2}
-        cy={size / 2}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-      />
-      {showText && (
-        <text
-          x="50%"
-          y="50%"
-          dominantBaseline="middle"
-          textAnchor="middle"
-          fontSize={size * 0.3}
-          fill="#333"
-        >
-          {percentage}%
-        </text>
-      )}
-    </svg>
-  );
-};
-
 export default function SessionCountPage() {
   const {
     shop,
@@ -192,220 +168,175 @@ export default function SessionCountPage() {
     overallCheckoutInitiationRate,
     PUBLIC_APP_URL
   } = useLoaderData();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [isClient, setIsClient] = useState(false);
-  const [Charts, setCharts] = useState(null);
-  useEffect(() => {
-    (async () => {
-      const mod = await import('@shopify/polaris-viz');
-      await import('@shopify/polaris-viz/build/esm/styles.css');
-      setCharts({
-        LineChart: mod.LineChart,
-        BarChart: mod.BarChart,
-        Spark: mod.SparkLineChart,
-      });
-    })();
-  }, []);
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-  const itemsPerPage = 10;
-  const filteredStats = useMemo(() => {
-    if (!searchQuery) {
-      return dailyStats;
-    }
-    const lowerCaseQuery = searchQuery.toLowerCase();
-    return dailyStats.filter(stat =>
-      stat.date.includes(lowerCaseQuery) ||
-      stat.sessionCount.toString().includes(lowerCaseQuery) ||
-      stat.orderCount.toString().includes(lowerCaseQuery) ||
-      stat.conversionRate.toString().toLowerCase().includes(lowerCaseQuery) ||
-      stat.bounceRate.toString().toLowerCase().includes(lowerCaseQuery) ||
-      stat.checkoutInitiationRate.toString().toLowerCase().includes(lowerCaseQuery)
-    );
-  }, [dailyStats, searchQuery]);
-  const totalPages = Math.ceil(filteredStats.length / itemsPerPage);
-  const currentItems = useMemo(() => {
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    return filteredStats.slice(indexOfFirstItem, indexOfLastItem);
-  }, [currentPage, filteredStats, itemsPerPage]);
-  const rows = currentItems.map(stat => [
-    stat.date,
-    stat.sessionCount,
-    stat.orderCount,
-    `${stat.conversionRate.toFixed(2)} %`,
-    `${stat.bounceRate.toFixed(2)} %`,
-    `${stat.checkoutInitiationRate.toFixed(2)} %`,
-  ]);
-  const handlePrevious = () => {
-    setCurrentPage((prev) => Math.max(prev - 1, 1));
-  };
-  const handleNext = () => {
-    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
-  };
+
+  const isClient = useClientOnly();
+
+  // Search and pagination for daily stats table
+  const searchableFields = [
+    'date', 
+    'sessionCount', 
+    'orderCount', 
+    'conversionRate', 
+    'bounceRate', 
+    'checkoutInitiationRate'
+  ];
+  
+  const { searchQuery, setSearchQuery, filteredItems, clearSearch } = useSearch(
+    dailyStats, 
+    searchableFields
+  );
+  
+  const {
+    currentPage,
+    totalPages,
+    paginatedItems,
+    handleNextPage,
+    handlePreviousPage,
+    hasNextPage,
+    hasPreviousPage,
+  } = usePagination(filteredItems, APP_CONSTANTS.DEFAULT_ITEMS_PER_PAGE);
+
+  // Prepare chart data
   const chartData = useMemo(() => {
     return [...dailyStats].sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [dailyStats]);
-  if (!Charts) return null;
-  const { LineChart, BarChart, Spark } = Charts;
+
+  // Prepare table data
+  const tableRows = paginatedItems.map(stat => [
+    formatDate(stat.date, { month: 'short', day: 'numeric', year: 'numeric' }),
+    stat.sessionCount.toString(),
+    stat.orderCount.toString(),
+    `${formatNumber(stat.conversionRate)}%`,
+    `${formatNumber(stat.bounceRate)}%`,
+    `${formatNumber(stat.checkoutInitiationRate)}%`,
+  ]);
+
+  const tableColumns = [
+    'Date',
+    'Sessions',
+    'Orders',
+    'Conversion Rate',
+    'Bounce Rate',
+    'Checkout Rate',
+  ];
+
+  if (!isClient) {
+    return (
+      <Page title="Performance Analytics" fullWidth>
+        <LoadingState message="Loading dashboard..." />
+      </Page>
+    );
+  }
+
   return (
-    <Page title="Daily Conversion & Engagement Stats" fullWidth>
-      <BlockStack gap="200">
-        <Text variant="headingLg" as="h1">Analytics Dashboard</Text>
-        <InlineGrid columns={{ xs: 1, sm: 2, md: 3, lg: 4, xl: 5 }} gap="200">
-          <Card sectioned>
-            <BlockStack gap="100">
-              <Text variant="headingMd" as="h2">Total Sessions</Text>
-              {isClient &&
-                <Spark
-                  data={[
-                    {
-                      name: 'Session Count',
-                      color: '#007ACE',
-                      data: chartData.map(({ date, sessionCount }) => ({
-                        key: date,
-                        value: sessionCount,
-                      })),
-                    },
-                  ]}
-                  accessibilityLabel="Total sessions trend"
-                  theme="Default"
-                />
-              }
-              <InlineGrid columns={2} alignItems="center">
-                <Text variant="headingXl" as="p" alignment="start">
-                  {totalSessionCount}
-                </Text>
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                </div>
-              </InlineGrid>
-            </BlockStack>
-          </Card>
-          <Card sectioned>
-            <BlockStack gap="100">
-              <Text variant="headingMd" as="h2">Total Orders</Text>
-              {isClient &&
-                <Spark
-                  data={[
-                    {
-                      name: "Order Count",
-                      color: '#007ACE',
-                      data: chartData.map(({ date, orderCount }) => {
-                        return {
-                          key: date,
-                          value: orderCount,
-                        };
-                      })
-                    }
-                  ]}
-                  accessibilityLabel='Total Orders'
-                  theme='default'
-                />
-              }
-              <InlineGrid columns={2} alignItems="center">
-                <Text variant="headingXl" as="p" alignment="start">{totalOrderCount}</Text>
-              </InlineGrid>
-            </BlockStack>
-          </Card>
-          <Card sectioned>
-            <BlockStack gap="100">
-              <Text variant="headingMd" as="h2">Overall Conversion Rate</Text>
-              <InlineGrid columns={2} alignItems="center">
-                <Text variant="headingXl" as="p" alignment="start">{overallConversionRate}%</Text>
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: '11px' }}>
-                  <ProgressBarCircle percentage={overallConversionRate} color="#47C1BF" />
-                </div>
-              </InlineGrid>
-            </BlockStack>
-          </Card>
-          <Card sectioned>
-            <BlockStack gap="100">
-              <Text variant="headingMd" as="h2">Total Initiated Checkouts</Text>
-              {isClient &&
-                <Spark
-                  data={[
-                    {
-                      name: "Order Count",
-                      color: '#007ACE',
-                      data: chartData.map(({ date, initiatedCheckouts }) => {
-                        return {
-                          key: date,
-                          value: initiatedCheckouts,
-                        };
-                      })
-                    }
-                  ]}
-                  accessibilityLabel='Total Orders'
-                  theme='default'
-                />
-              }
-              <InlineGrid columns={2} alignItems="center">
-                <Text variant="headingXl" as="p" alignment="start">{totalInitiatedCheckouts}</Text>
-              </InlineGrid>
-            </BlockStack>
-          </Card>
-          <Card sectioned>
-            <BlockStack gap="100">
-              <Text variant="headingMd" as="h2">Overall Checkout Initiation Rate</Text>
-              <InlineGrid columns={2} alignItems="center">
-                <Text variant="headingXl" as="p" alignment="start">{overallCheckoutInitiationRate}%</Text>
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: '11px' }}>
-                  <ProgressBarCircle percentage={overallCheckoutInitiationRate} color="#ADD8E6" />
-                </div>
-              </InlineGrid>
-            </BlockStack>
-          </Card>
-          <Card sectioned>
-            <BlockStack gap="100">
-              <Text variant="headingMd" as="h2">Total Bounced Sessions</Text>
-              {isClient &&
-                <Spark
-                  data={[
-                    {
-                      name: "Order Count",
-                      color: '#007ACE',
-                      data: chartData.map(({ date, bouncedSessions }) => {
-                        return {
-                          key: date,
-                          value: bouncedSessions,
-                        };
-                      })
-                    }
-                  ]}
-                  accessibilityLabel='Total Orders'
-                  theme='default'
-                />
-              }
-              <InlineGrid columns={2} alignItems="center">
-                <Text variant="headingXl" as="p" alignment="start">{totalBouncedSessions}</Text>
-              </InlineGrid>
-            </BlockStack>
-          </Card>
-          <Card sectioned>
-            <BlockStack gap="100">
-              <Text variant="headingMd" as="h2">Overall Bounce Rate</Text>
-              <InlineGrid columns={2} alignItems="center">
-                <Text variant="headingXl" as="p" alignment="start">{overallBounceRate}%</Text>
-                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', marginTop: '11px' }}>
-                  <ProgressBarCircle
-                    percentage={overallBounceRate}
-                    color={overallBounceRate < 50 ? "#92FCAC" : "#FED9DF"}
-                  />
-                </div>
-              </InlineGrid>
-            </BlockStack>
-          </Card>
-        </InlineGrid>
-        <InlineGrid columns={{ xs: 1, sm: 1, md: 1, lg: 3, xl: 3 }} gap="200">
-          {isClient && (
-            <Card title="Sessions & Orders Over Time" sectioned>
+    <Page title="Performance Analytics" fullWidth>
+      <BlockStack gap="400">
+        {/* Key Metrics Grid */}
+        <StatsGrid columns={{ xs: 2, sm: 3, md: 4, lg: 6 }}>
+          {/* Total Sessions */}
+          <MetricCard
+            title="Total Sessions"
+            value={totalSessionCount}
+            formatValue={false}
+            chart={
+              <SparkChart
+                data={chartData.map(({ date, sessionCount }) => ({
+                  key: date,
+                  value: sessionCount,
+                }))}
+                color={APP_CONSTANTS.COLORS.PRIMARY}
+                accessibilityLabel="Sessions trend"
+              />
+            }
+          />
+
+          {/* Total Orders */}
+          <MetricCard
+            title="Total Orders"
+            value={totalOrderCount}
+            formatValue={false}
+            chart={
+              <SparkChart
+                data={chartData.map(({ date, orderCount }) => ({
+                  key: date,
+                  value: orderCount,
+                }))}
+                color={APP_CONSTANTS.COLORS.PRIMARY}
+                accessibilityLabel="Orders trend"
+              />
+            }
+          />
+
+          {/* Conversion Rate */}
+          <MetricCard
+            title="Conversion Rate"
+            value={`${formatNumber(overallConversionRate)}%`}
+            formatValue={false}
+            icon={
+              <ProgressCircle
+                percentage={overallConversionRate}
+                color={APP_CONSTANTS.COLORS.CONVERSION}
+                size={40}
+              />
+            }
+          />
+
+          {/* Bounce Rate */}
+          <MetricCard
+            title="Bounce Rate"
+            value={`${formatNumber(overallBounceRate)}%`}
+            formatValue={false}
+            icon={
+              <ProgressCircle
+                percentage={overallBounceRate}
+                color={overallBounceRate < 50 ? APP_CONSTANTS.COLORS.SUCCESS : APP_CONSTANTS.COLORS.CRITICAL}
+                size={40}
+              />
+            }
+          />
+
+          {/* Checkout Initiation Rate */}
+          <MetricCard
+            title="Checkout Rate"
+            value={`${formatNumber(overallCheckoutInitiationRate)}%`}
+            formatValue={false}
+            icon={
+              <ProgressCircle
+                percentage={overallCheckoutInitiationRate}
+                color={APP_CONSTANTS.COLORS.CHECKOUT}
+                size={40}
+              />
+            }
+          />
+
+          {/* Bounced Sessions */}
+          <MetricCard
+            title="Bounced Sessions"
+            value={totalBouncedSessions}
+            formatValue={false}
+            chart={
+              <SparkChart
+                data={chartData.map(({ date, bouncedSessions }) => ({
+                  key: date,
+                  value: bouncedSessions || 0,
+                }))}
+                color={APP_CONSTANTS.COLORS.CRITICAL}
+                accessibilityLabel="Bounced sessions trend"
+              />
+            }
+          />
+        </StatsGrid>
+
+        {/* Charts Grid */}
+        <StatsGrid columns={{ xs: 1, md: 2, lg: 3 }}>
+          <MetricCard
+            title="Sessions & Orders Over Time"
+            chart={
               <LineChart
                 data={[
                   {
                     name: 'Sessions',
-                    color: '#007ACE',
+                    color: APP_CONSTANTS.COLORS.PRIMARY,
                     data: chartData.map(({ date, sessionCount }) => ({
                       key: date,
                       value: sessionCount,
@@ -413,7 +344,7 @@ export default function SessionCountPage() {
                   },
                   {
                     name: 'Orders',
-                    color: '#D42A2A',
+                    color: APP_CONSTANTS.COLORS.CRITICAL,
                     data: chartData.map(({ date, orderCount }) => ({
                       key: date,
                       value: orderCount,
@@ -421,98 +352,72 @@ export default function SessionCountPage() {
                   },
                 ]}
                 xAxisOptions={{ labelFormatter: (value) => value }}
-                showLegend
-                theme="Default"
-                isAnimated
+                accessibilityLabel="Sessions and orders over time"
               />
-            </Card>
-          )}
-          {isClient && (
-            <Card title="Total Sessions vs. Orders" sectioned>
+            }
+          />
+
+          <MetricCard
+            title="Sessions vs Orders"
+            chart={
               <BarChart
                 data={[
                   {
-                    name: 'Sessions vs Orders',
-                    color: '#8884d8',
+                    name: 'Totals',
+                    color: APP_CONSTANTS.COLORS.PRIMARY,
                     data: [
-                      { key: 'Total Sessions', value: totalSessionCount || 0 },
-                      { key: 'Total Orders', value: totalOrderCount || 0 },
+                      { key: 'Sessions', value: totalSessionCount || 0 },
+                      { key: 'Orders', value: totalOrderCount || 0 },
                     ],
                   },
                 ]}
-                theme="Default"
-                isAnimated
-                xAxisOptions={{ labelFormatter: (value) => value }}
+                accessibilityLabel="Total sessions vs orders comparison"
               />
-            </Card>
-          )}
-          {isClient && (
-            <Card title="Conversion, Checkout & Bounce Rates" sectioned>
+            }
+          />
+
+          <MetricCard
+            title="Performance Rates"
+            chart={
               <BarChart
                 data={[
                   {
                     name: 'Rates',
-                    color: '#47C1BF',
+                    color: APP_CONSTANTS.COLORS.CONVERSION,
                     data: [
-                      { key: 'Conversion Rate', value: overallConversionRate || 0 },
-                      { key: 'Checkout Rate', value: overallCheckoutInitiationRate || 0 },
-                      { key: 'Bounce Rate', value: overallBounceRate || 0 },
+                      { key: 'Conversion', value: overallConversionRate || 0 },
+                      { key: 'Checkout', value: overallCheckoutInitiationRate || 0 },
+                      { key: 'Bounce', value: overallBounceRate || 0 },
                     ],
                   },
                 ]}
-                theme="Default"
-                isAnimated
                 layout="horizontal"
                 xAxisOptions={{
                   labelFormatter: (value) => `${value}%`,
                 }}
+                accessibilityLabel="Performance rates comparison"
               />
-            </Card>
-          )}
-        </InlineGrid>
-        <Card sectioned title="Daily Performance Breakdown">
-          <BlockStack gap="400">
-            <TextField
-              label="Search daily stats"
-              value={searchQuery}
-              onChange={setSearchQuery}
-              clearButton
-              onClearButtonClick={() => setSearchQuery('')}
-              placeholder="Search by date, session, orders, conversion, bounce, or checkout initiation"
-              autoComplete="off"
-            />
-            {filteredStats.length === 0 && searchQuery !== '' ? (
-              <Text alignment="center" tone="subdued" as="p">No results found for your search query.</Text>
-            ) : filteredStats.length === 0 && searchQuery === '' ? (
-              <Text alignment="center" tone="subdued" as="p">No daily performance data available.</Text>
-            ) : (
-              <>
-                <DataTable
-                  columnContentTypes={['text', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric']}
-                  headings={[
-                    <b>Date</b>,
-                    <b>Sessions</b>,
-                    <b>Orders</b>,
-                    <b>Conversion Rate</b>,
-                    <b>Bounce Rate</b>,
-                    <b>Checkout Init. Rate</b>,
-                  ]}
-                  rows={rows}
-                />
-                <div style={{ display: 'flex', justifyContent: 'start', marginTop: '20px' }}>
-                  <Pagination
-                    hasPrevious={currentPage > 1}
-                    onPrevious={handlePrevious}
-                    hasNext={currentPage < totalPages}
-                    onNext={handleNext}
-                    accessibilityLabel={`Page ${currentPage} of ${totalPages}`}
-                    label={`${currentPage} / ${totalPages}`}
-                  />
-                </div>
-              </>
-            )}
-          </BlockStack>
-        </Card>
+            }
+          />
+        </StatsGrid>
+
+        {/* Data Table */}
+        <EnhancedDataTable
+          title="Daily Performance Breakdown"
+          data={tableRows}
+          columns={tableColumns}
+          columnContentTypes={['text', 'numeric', 'numeric', 'numeric', 'numeric', 'numeric']}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onClearSearch={clearSearch}
+          searchPlaceholder="Search by date, sessions, orders, rates..."
+          currentPage={currentPage}
+          totalPages={totalPages}
+          hasNextPage={hasNextPage}
+          hasPreviousPage={hasPreviousPage}
+          onNextPage={handleNextPage}
+          onPreviousPage={handlePreviousPage}
+        />
       </BlockStack>
     </Page>
   );
