@@ -1,10 +1,7 @@
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
-import Polaris from "@shopify/polaris";
+import { Page, Layout, Card, Text, Code, EmptyState } from "@shopify/polaris";
 import { useEffect, useState } from "react";
-
-// Destructure components from Polaris default export
-const { Page, Layout, Card, Text, Code, EmptyState } = Polaris;
 
 export async function loader({ request }) {
   const url = new URL(request.url);
