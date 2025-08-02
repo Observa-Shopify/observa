@@ -1,6 +1,6 @@
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
-import { Page, Layout, Card, Text, Code, EmptyState } from "@shopify/polaris";
+import { Page, Layout, Card, Text, EmptyState } from "@shopify/polaris";
 import { useEffect, useState } from "react";
 
 export async function loader({ request }) {
@@ -84,9 +84,23 @@ export default function PixelEventsPage() {
                   <Text as="p" variant="bodySm">
                     Storefront Payload:
                   </Text>
-                  <Code block>
-                    {JSON.stringify(event.storefrontEvent, null, 2)}
-                  </Code>
+                  <div style={{
+                    backgroundColor: "#f6f6f7",
+                    padding: "1rem",
+                    borderRadius: "6px",
+                    border: "1px solid #e1e3e5",
+                    marginTop: "0.5rem"
+                  }}>
+                    <pre style={{
+                      fontFamily: "Monaco, Consolas, 'Lucida Console', monospace",
+                      fontSize: "12px",
+                      margin: 0,
+                      whiteSpace: "pre-wrap",
+                      wordBreak: "break-word"
+                    }}>
+                      {JSON.stringify(event.storefrontEvent, null, 2)}
+                    </pre>
+                  </div>
                 </div>
               ))}
             </Card>
