@@ -2,7 +2,7 @@ import React from 'react'
 import { Page, Card, Text, BlockStack, EmptyState } from "@shopify/polaris";
 
 
-const Orders_view = ({ orders, totalSales }) => {
+const OrdersView = ({ orders, totalSales }) => {
   return (
     <Page title="Dashboard">
       <BlockStack gap="400">
@@ -22,12 +22,21 @@ const Orders_view = ({ orders, totalSales }) => {
               <p>Your store doesn't have any orders yet.</p>
             </EmptyState>
           ) : (
-            <BlockStack gap="200">
-              {orders.map(order => (
-                <Text key={order.id}>
-                  {order.name} - ${parseFloat(order.totalPriceSet.shopMoney.amount).toFixed(2)} -{" "}
-                  {new Date(order.createdAt).toLocaleDateString()}
-                </Text>
+            <BlockStack gap="300">
+              {orders.map((order) => (
+                <Card key={order.id} sectioned>
+                  <BlockStack gap="200">
+                    <Text as="h3" variant="headingMd">
+                      {order.name}
+                    </Text>
+                    <Text variant="bodyMd">
+                      Total: ${parseFloat(order.totalPriceSet.shopMoney.amount).toFixed(2)}
+                    </Text>
+                    <Text variant="bodySm" tone="subdued">
+                      Created: {new Date(order.createdAt).toLocaleDateString()}
+                    </Text>
+                  </BlockStack>
+                </Card>
               ))}
             </BlockStack>
           )}
@@ -37,4 +46,4 @@ const Orders_view = ({ orders, totalSales }) => {
   )
 }
 
-export default Orders_view
+export default OrdersView;

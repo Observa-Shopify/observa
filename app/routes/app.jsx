@@ -23,7 +23,7 @@ export default function App() {
           Home
         </Link>
         <Link to="/app/vitals">Store Vitals</Link>
-        <Link to="/app/testing1">Sales Growth</Link>
+        <Link to="/app/sales">Sales Growth</Link>
         <Link to="/app/traffic">Traffic Rate</Link>
       </NavMenu>
       <Outlet />
