@@ -156,7 +156,7 @@
             console.log('Network:', metrics.network || 'Not available');
             console.groupEnd();
 
-            // const baseUrl = process.env.PUBLIC_APP_URL;
+            // const baseUrl = process.env.SHOPIFY_APP_URL;
 
             fetch(`https://observa-two.vercel.app/api/vitals`, {
                 method: 'POST',
