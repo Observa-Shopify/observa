@@ -10,9 +10,9 @@ let visitTriggered = false;
 export const loader = async ({ request }) => {
     const { session } = await authenticate.admin(request);
     const shop = session.shop;
-    // const baseUrl = process.env.PUBLIC_APP_URL;
+    // const baseUrl = process.env.SHOPIFY_APP_URL;
 
-    // const PUBLIC_APP_URL = process.env.PUBLIC_APP_URL
+    // const SHOPIFY_APP_URL = process.env.SHOPIFY_APP_URL
 
     let apiCallSucceeded = false;
 

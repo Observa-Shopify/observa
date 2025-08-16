@@ -124,7 +124,7 @@ After removing old files, update any navigation or menu references:
 - **Helpers**: `metrics.server.js`, `order-count.js` (kebab-case)
 
 #### ✅ **Environment/Config Conventions:**
-- **Environment Variables**: `PUBLIC_APP_URL`, `SHOPIFY_APP_URL` (SCREAMING_SNAKE_CASE)
+- **Environment Variables**: `SHOPIFY_APP_URL`, `SHOPIFY_APP_URL` (SCREAMING_SNAKE_CASE)
 - **GraphQL Fields**: `created_at`, `client_id` (API naming conventions)
 
 ### 🗑️ **Manual Cleanup Still Required:**

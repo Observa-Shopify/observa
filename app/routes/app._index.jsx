@@ -33,7 +33,7 @@ export const loader = async ({ request }) => {
   // Use shop from session
   const cleanedShop = session.shop;
 
-  const PUBLIC_APP_URL = process.env.PUBLIC_APP_URL;
+  const SHOPIFY_APP_URL = process.env.SHOPIFY_APP_URL;
 
   const allSessions = await prisma.sessionCheckout.findMany({
     where: { shop: cleanedShop },
@@ -151,7 +151,7 @@ export const loader = async ({ request }) => {
     totalInitiatedCheckouts,
     overallBounceRate: parseFloat(overallBounceRate),
     overallCheckoutInitiationRate: parseFloat(overallCheckoutInitiationRate),
-    PUBLIC_APP_URL
+    SHOPIFY_APP_URL
   });
 };
 
@@ -166,7 +166,7 @@ export default function SessionCountPage() {
     totalInitiatedCheckouts,
     overallBounceRate,
     overallCheckoutInitiationRate,
-    PUBLIC_APP_URL
+    SHOPIFY_APP_URL
   } = useLoaderData();
 
   const isClient = useClientOnly();
