@@ -1,28 +1,29 @@
 import { json } from "@remix-run/node";
-import shopify, { authenticate } from "../shopify.server";
+import { authenticate } from "../shopify.server";
 
-
-export const loader = async ({ request }) => {
-  const { session } = await authenticate.admin(request);
-
-  const mutation = `
-    mutation {
-      webPixelCreate(webPixel: { settings: "{\\"accountID\\":\\"123\\"}" }) {
-        userErrors {
-          code
-          field
-          message
-        }
-        webPixel {
-          id
-          settings
-        }
+// ✅ Correct mutation (settings is JSON, not String)
+const WEB_PIXEL_CREATE_MUTATION = `
+  mutation webPixelCreate($settings: JSON!) {
+    webPixelCreate(webPixel: { settings: $settings }) {
+      userErrors {
+        code
+        field
+        message
+      }
+      webPixel {
+        id
+        settings
       }
     }
-  `;
+  }
+`;
 
-  const client = new shopify.api.clients.Graphql({ session });
-  const response = await client.query({ data: mutation });
+export async function createWebPixel(admin, accountID = "123") {
+  const response = await admin.graphql(WEB_PIXEL_CREATE_MUTATION, {
+    variables: {
+      settings: { accountID }, // ✅ pass as JSON, no stringify
+    },
+  });
 
-  return json(response.body);
-};
+  return await response.json();
+}

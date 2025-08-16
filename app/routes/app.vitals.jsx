@@ -16,8 +16,10 @@ export const loader = async ({ request }) => {
 
     let apiCallSucceeded = false;
 
+    const APP_URL='https://mon-cap-salmon-mitchell.trycloudflare.com'
+
     try {
-        const response = await fetch(`https://observa-two.vercel.app/api/vitals`);
+        const response = await fetch(`${APP_URL}/api/vitals`);
         const data = await response.json();
         const metrics = data?.metrics;
 
