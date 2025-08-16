@@ -14,15 +14,15 @@ automatically_update_urls_on_dev = true
 api_version = "2025-07"
 
   [[webhooks.subscriptions]]
-  uri = "https://ai-speed-booster-app.fly.dev/webhooks/customers/data_request"
+  uri = "https://observa-two.vercel.app/webhooks/customers/data_request"
   compliance_topics = [ "customers/data_request" ]
 
   [[webhooks.subscriptions]]
-  uri = "https://ai-speed-booster-app.fly.dev/webhooks/customers/redact"
+  uri = "https://observa-two.vercel.app/webhooks/customers/redact"
   compliance_topics = [ "customers/redact" ]
 
   [[webhooks.subscriptions]]
-  uri = "https://ai-speed-booster-app.fly.dev/webhooks/shop/redact"
+  uri = "https://observa-two.vercel.app/webhooks/shop/redact"
   compliance_topics = [ "shop/redact" ]
 
 [access_scopes]
