@@ -158,7 +158,7 @@
 
             // const baseUrl = process.env.SHOPIFY_APP_URL;
 
-            const APP_URL='https://mon-cap-salmon-mitchell.trycloudflare.com'
+            const APP_URL='https://observa-two.vercel.app'
 
             fetch(`${APP_URL}/api/vitals`, {
                 method: 'POST',

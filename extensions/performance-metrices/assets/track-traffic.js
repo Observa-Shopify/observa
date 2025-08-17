@@ -5,7 +5,7 @@
 
     if (!shop) return console.error("❌ No shop domain provided!");
 
-    const APP_URL='https://mon-cap-salmon-mitchell.trycloudflare.com'
+    const APP_URL='https://observa-two.vercel.app'
 
     fetch(`${APP_URL}/api/track-traffic`,  {
         method: "POST",
