@@ -26,7 +26,7 @@ import {
   formatNumber,
   formatDate
 } from '../utils';
-import { createWebPixel } from './activate-pixel';
+import { createWebPixel } from '../helpers/webPixel.server';
 
 // --- Loader Function ---
 export const loader = async ({ request }) => {
