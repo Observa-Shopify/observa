@@ -9,7 +9,7 @@ register(({ analytics, browser, settings }) => {
 
   console.log("Pixel started with expiry tracking");
 
-  const APP_URL = 'https://mon-cap-salmon-mitchell.trycloudflare.com';
+  const APP_URL = 'https://observa-two.vercel.app';
   const TRACK_ENDPOINT = `${APP_URL}/api/pixel-payload`;
 
   const reportEventToBackend = async (eventName, expireImmediately = false) => {
