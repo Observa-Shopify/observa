@@ -1,14 +1,14 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
-client_id = "12cb9c291d7258d9570888f48b059038"
-name = "observa dev"
-handle = "observa-dev"
-application_url = "https://agent-councils-slow-cruises.trycloudflare.com"
+client_id = "feaaffcbe235d0c4ea027da7deae933e"
+name = "observa-dev-app"
+handle = "observa-dev-app"
+application_url = "https://mon-cap-salmon-mitchell.trycloudflare.com"
 embedded = true
 
 [build]
-automatically_update_urls_on_dev = true
 include_config_on_deploy = true
+automatically_update_urls_on_dev = true
 
 [webhooks]
 api_version = "2025-07"
@@ -18,7 +18,7 @@ api_version = "2025-07"
 scopes = "read_checkouts,read_customer_events,read_customers,read_orders,read_pixels,write_orders,write_pixels,write_products"
 
 [auth]
-redirect_urls = ["https://agent-councils-slow-cruises.trycloudflare.com/auth/callback", "https://agent-councils-slow-cruises.trycloudflare.com/auth/shopify/callback", "https://agent-councils-slow-cruises.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://mon-cap-salmon-mitchell.trycloudflare.com/auth/callback", "https://mon-cap-salmon-mitchell.trycloudflare.com/auth/shopify/callback", "https://mon-cap-salmon-mitchell.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false

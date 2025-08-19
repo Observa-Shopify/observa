@@ -8,29 +8,34 @@ import {
   BlockStack,
 } from '@shopify/polaris';
 import { useState, useMemo } from 'react';
-import { 
-  MetricCard, 
-  StatsGrid, 
+import {
+  MetricCard,
+  StatsGrid,
   ProgressCircle,
   EnhancedDataTable,
   SparkChart,
   LineChart,
   BarChart,
-  LoadingState 
+  LoadingState
 } from '../components/shared';
-import { 
-  usePagination, 
-  useSearch, 
+import {
+  usePagination,
+  useSearch,
   useClientOnly,
   APP_CONSTANTS,
   formatNumber,
   formatDate
 } from '../utils';
+import { createWebPixel } from './activate-pixel';
 
 // --- Loader Function ---
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
   // Use shop from session
+
+  const pixelActivation = await createWebPixel(admin); // Example account ID
+  console.log("pixelActivation", pixelActivation);
+
   const cleanedShop = session.shop;
 
   const SHOPIFY_APP_URL = process.env.SHOPIFY_APP_URL;
@@ -173,19 +178,19 @@ export default function SessionCountPage() {
 
   // Search and pagination for daily stats table
   const searchableFields = [
-    'date', 
-    'sessionCount', 
-    'orderCount', 
-    'conversionRate', 
-    'bounceRate', 
+    'date',
+    'sessionCount',
+    'orderCount',
+    'conversionRate',
+    'bounceRate',
     'checkoutInitiationRate'
   ];
-  
+
   const { searchQuery, setSearchQuery, filteredItems, clearSearch } = useSearch(
-    dailyStats, 
+    dailyStats,
     searchableFields
   );
-  
+
   const {
     currentPage,
     totalPages,
