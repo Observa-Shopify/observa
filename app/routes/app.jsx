@@ -39,7 +39,6 @@ export default function App() {
           <Link to="/app/vitals">Store Vitals</Link>
           <Link to="/app/sales">Sales Growth</Link>
           <Link to="/app/traffic">Traffic Rate</Link>
-          <Link to="/app/plans">Plans</Link>
         </NavMenu>
         <Outlet />
       </MantleProvider>
