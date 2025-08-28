@@ -1,13 +1,13 @@
 
 import { json } from '@remix-run/node';
-import { useLoaderData } from '@remix-run/react';
+import { useFetcher, useLoaderData } from '@remix-run/react';
 import { authenticate } from '../shopify.server';
 import prisma from '../db.server';
 import {
   Page,
   BlockStack,
 } from '@shopify/polaris';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   MetricCard,
   StatsGrid,
@@ -37,6 +37,23 @@ export const loader = async ({ request }) => {
   console.log("pixelActivation", pixelActivation);
 
   const cleanedShop = session.shop;
+  const shop = cleanedShop
+
+  const settings = await prisma.alertSettings.findUnique({
+    where: { shop },
+    select: {
+      conversionRateLow: true,
+      conversionRateThreshold: true, // 👈 include threshold
+    },
+  });
+
+  const { conversionRateLow, conversionRateThreshold } = settings;
+
+  // console.log("sssssssssssssssssssssssssssssssssssssss", settings)
+
+  if (!settings) {
+    return json({ conversionRateLow: false });
+  }
 
   const SHOPIFY_APP_URL = process.env.SHOPIFY_APP_URL;
 
@@ -156,7 +173,9 @@ export const loader = async ({ request }) => {
     totalInitiatedCheckouts,
     overallBounceRate: parseFloat(overallBounceRate),
     overallCheckoutInitiationRate: parseFloat(overallCheckoutInitiationRate),
-    SHOPIFY_APP_URL
+    SHOPIFY_APP_URL,
+    conversionRateLow,
+    conversionRateThreshold
   });
 };
 
@@ -171,10 +190,16 @@ export default function SessionCountPage() {
     totalInitiatedCheckouts,
     overallBounceRate,
     overallCheckoutInitiationRate,
-    SHOPIFY_APP_URL
+    SHOPIFY_APP_URL,
+    conversionRateLow,
+    conversionRateThreshold
   } = useLoaderData();
 
+  const triggerFetcher = useFetcher()
+
   const isClient = useClientOnly();
+  const [alert, setAlert] = useState("");
+
 
   // Search and pagination for daily stats table
   const searchableFields = [
@@ -190,6 +215,26 @@ export default function SessionCountPage() {
     dailyStats,
     searchableFields
   );
+
+  const triggerDummyAlert = (type) => {
+    // console.log("ddddddddddddddddddddddd")
+    triggerFetcher.submit({ type }, {
+      method: "post",
+      action: "/app/settings/trigger",
+      encType: "application/json"
+    });
+    setAlert(type);
+    setTimeout(() => setAlert(""), 3000);
+  };
+
+  useEffect(() => {
+    console.log("conversionRateThreshold", conversionRateThreshold)
+    console.log("conversionRateLow", conversionRateLow)
+    if (overallConversionRate < conversionRateThreshold && conversionRateLow === true) {
+      console.log("conversion rate is low")
+      triggerDummyAlert('conversionRateLow')
+    }
+  }, [overallConversionRate])
 
   const {
     currentPage,

@@ -92,3 +92,21 @@ model SessionCheckout {
   pageViews            Int       @default(1) // Number of page views within this session
   hasInitiatedCheckout Boolean   @default(false) // Whether this session initiated a checkout
 }
+
+
+model AlertSettings {
+  id                    String   @id @default(uuid())
+  shop                  String // Shopify shop domain or identifier
+  revenueRateLow        Boolean  @default(false)
+  orderGrowthLow        Boolean  @default(false)
+  trafficRateLow        Boolean  @default(false)
+  conversionRateLow     Boolean  @default(false)
+  conversionRateThreshold Float?
+  alertEmail            String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  slackWebhookUrl       String? // New field for Slack webhook
+  slackEnabled          Boolean  @default(false) // New field to enable/disable Slack
+
+  @@unique([shop])
+}
