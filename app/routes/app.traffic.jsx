@@ -32,6 +32,10 @@ export const loader = async ({ request }) => {
     },
   });
 
+  if (!settings) {
+    return json({ trafficRateLow: false });
+  }
+
   const { trafficRateLow } = settings;
 
   // console.log("settt", settings)

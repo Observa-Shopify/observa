@@ -47,19 +47,33 @@ export const loader = async ({ request }) => {
     },
   });
 
-  const { conversionRateLow, conversionRateThreshold } = settings;
-
   // console.log("sssssssssssssssssssssssssssssssssssssss", settings)
 
   if (!settings) {
-    return json({ conversionRateLow: false });
+    return json({ 
+      conversionRateLow: false,
+      shop: cleanedShop,
+      dailyStats: [],
+      totalSessionCount: 0,
+      totalOrderCount: 0,
+      overallConversionRate: 0,
+      totalBouncedSessions: 0,
+      totalInitiatedCheckouts: 0,
+      overallBounceRate: 0,
+      overallCheckoutInitiationRate: 0,
+      SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL,
+      conversionRateThreshold: 0
+    });
   }
+
+  const { conversionRateLow, conversionRateThreshold } = settings;
 
   const SHOPIFY_APP_URL = process.env.SHOPIFY_APP_URL;
 
-  const allSessions = await prisma.sessionCheckout.findMany({
-    where: { shop: cleanedShop },
-    select: { createdAt: true, pageViews: true, hasInitiatedCheckout: true },
+  try {
+    const allSessions = await prisma.sessionCheckout.findMany({
+      where: { shop: cleanedShop },
+      select: { createdAt: true, pageViews: true, hasInitiatedCheckout: true },
     orderBy: { createdAt: 'desc' },
   });
 
@@ -163,36 +177,54 @@ export const loader = async ({ request }) => {
     ? Math.min((totalInitiatedCheckouts / totalSessionCount) * 100, 100).toFixed(2)
     : '0.00';
 
-  return json({
-    shop: cleanedShop,
-    dailyStats,
-    totalSessionCount,
-    totalOrderCount,
-    overallConversionRate: parseFloat(overallConversionRate),
-    totalBouncedSessions,
-    totalInitiatedCheckouts,
-    overallBounceRate: parseFloat(overallBounceRate),
-    overallCheckoutInitiationRate: parseFloat(overallCheckoutInitiationRate),
-    SHOPIFY_APP_URL,
-    conversionRateLow,
-    conversionRateThreshold
-  });
-};
+    return json({
+      shop: cleanedShop,
+      dailyStats,
+      totalSessionCount,
+      totalOrderCount,
+      overallConversionRate: parseFloat(overallConversionRate),
+      totalBouncedSessions,
+      totalInitiatedCheckouts,
+      overallBounceRate: parseFloat(overallBounceRate),
+      overallCheckoutInitiationRate: parseFloat(overallCheckoutInitiationRate),
+      SHOPIFY_APP_URL,
+      conversionRateLow,
+      conversionRateThreshold
+    });
+  } catch (error) {
+    console.error('Error in loader:', error);
+    // Return safe defaults on error
+    return json({
+      shop: cleanedShop,
+      dailyStats: [],
+      totalSessionCount: 0,
+      totalOrderCount: 0,
+      overallConversionRate: 0,
+      totalBouncedSessions: 0,
+      totalInitiatedCheckouts: 0,
+      overallBounceRate: 0,
+      overallCheckoutInitiationRate: 0,
+      SHOPIFY_APP_URL,
+      conversionRateLow,
+      conversionRateThreshold: conversionRateThreshold || 0
+    });
+  }
+}
 
 export default function SessionCountPage() {
   const {
     shop,
-    dailyStats,
-    totalSessionCount,
-    totalOrderCount,
-    overallConversionRate,
-    totalBouncedSessions,
-    totalInitiatedCheckouts,
-    overallBounceRate,
-    overallCheckoutInitiationRate,
+    dailyStats = [],
+    totalSessionCount = 0,
+    totalOrderCount = 0,
+    overallConversionRate = 0,
+    totalBouncedSessions = 0,
+    totalInitiatedCheckouts = 0,
+    overallBounceRate = 0,
+    overallCheckoutInitiationRate = 0,
     SHOPIFY_APP_URL,
-    conversionRateLow,
-    conversionRateThreshold
+    conversionRateLow = false,
+    conversionRateThreshold = 0
   } = useLoaderData();
 
   const triggerFetcher = useFetcher()
@@ -248,7 +280,7 @@ export default function SessionCountPage() {
 
   // Prepare chart data
   const chartData = useMemo(() => {
-    return [...dailyStats].sort((a, b) => new Date(a.date) - new Date(b.date));
+    return [...(dailyStats || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [dailyStats]);
 
   // Prepare table data

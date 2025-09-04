@@ -56,51 +56,64 @@ export const loader = async ({ request }) => {
     },
   });
 
+  if (!settings) {
+    return json({ orderGrowthLow: false });
+  }
+
   const { orderGrowthLow } = settings;
 
   // console.log("settt", settings)
 
-  const ordersResponse = await admin.graphql(
-    `#graphql
-    query getRecentOrders($first: Int!) {
-      orders(first: $first, reverse: true) {
-        edges {
-          node {
-            id
-            name
-            totalPriceSet {
-              shopMoney {
-                amount
-                currencyCode
+  let allOrders = [];
+  let totalSales = 0;
+
+  try {
+    const ordersResponse = await admin.graphql(
+      `#graphql
+      query getRecentOrders($first: Int!) {
+        orders(first: $first, reverse: true) {
+          edges {
+            node {
+              id
+              name
+              totalPriceSet {
+                shopMoney {
+                  amount
+                  currencyCode
+                }
               }
+              createdAt
             }
-            createdAt
           }
         }
+      }`,
+      {
+        variables: {
+          first: 100 // Fetch up to 100 recent orders for analytics calculation
+        }
       }
-    }`,
-    {
-      variables: {
-        first: 100 // Fetch up to 100 recent orders for analytics calculation
-      }
-    }
-  );
+    );
 
-  const ordersData = await ordersResponse.json();
-  const orderEdges = ordersData?.data?.orders?.edges ?? [];
+    const ordersData = await ordersResponse.json();
+    const orderEdges = ordersData?.data?.orders?.edges ?? [];
 
-  const allOrders = orderEdges.map(edge => ({
-    id: edge.node.id,
-    name: edge.node.name,
-    amount: parseFloat(edge.node.totalPriceSet.shopMoney.amount),
-    currencyCode: edge.node.totalPriceSet.shopMoney.currencyCode,
-    createdAt: edge.node.createdAt,
-    createdAtDate: new Date(edge.node.createdAt)
-  }));
+    allOrders = orderEdges.map(edge => ({
+      id: edge.node.id,
+      name: edge.node.name,
+      amount: parseFloat(edge.node.totalPriceSet.shopMoney.amount),
+      currencyCode: edge.node.totalPriceSet.shopMoney.currencyCode,
+      createdAt: edge.node.createdAt,
+      createdAtDate: new Date(edge.node.createdAt)
+    }));
 
-  allOrders.sort((a, b) => b.createdAtDate.getTime() - a.createdAtDate.getTime());
-
-  const totalSales = allOrders.reduce((acc, order) => acc + order.amount, 0);
+    allOrders.sort((a, b) => b.createdAtDate.getTime() - a.createdAtDate.getTime());
+    totalSales = allOrders.reduce((acc, order) => acc + order.amount, 0);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    // Return safe defaults
+    allOrders = [];
+    totalSales = 0;
+  }
 
   let current7DaysSales = 0;
   let previous7DaysSales = 0;
@@ -183,14 +196,14 @@ export const loader = async ({ request }) => {
 
 export default function SalesDashboard() {
   const {
-    orders,
-    totalSales,
+    orders = [], // Add default empty array
+    totalSales = 0,
     salesGrowthStatus,
     salesGrowthPercentage,
     averageOrderValueGrowthStatus,
     averageOrderValueGrowthPercentage,
-    current7DaysSales,
-    previous7DaysSales,
+    current7DaysSales = 0,
+    previous7DaysSales = 0,
     orderGrowthLow
   } = useLoaderData();
     const triggerFetcher = useFetcher();
@@ -210,7 +223,7 @@ export default function SalesDashboard() {
     handlePreviousPage,
     hasNextPage,
     hasPreviousPage,
-  } = usePagination(orders, APP_CONSTANTS.DEFAULT_ITEMS_PER_PAGE);
+  } = usePagination(orders || [], APP_CONSTANTS.DEFAULT_ITEMS_PER_PAGE);
 
   // Prepare table data
   const tableRows = paginatedOrders.map(order => [
@@ -222,11 +235,11 @@ export default function SalesDashboard() {
   const tableColumns = ['Order Name', 'Total Price', 'Created At'];
 
   // Calculate average order value
-  const currentAOV = current7DaysSales / (orders.filter(o =>
+  const currentAOV = current7DaysSales / ((orders || []).filter(o =>
     new Date(o.createdAt) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
   ).length || 1);
 
-  const previousAOV = previous7DaysSales / (orders.filter(o => {
+  const previousAOV = previous7DaysSales / ((orders || []).filter(o => {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     const orderDate = new Date(o.createdAt);
@@ -307,7 +320,7 @@ export default function SalesDashboard() {
         </StatsGrid>
 
         {/* Orders Table */}
-        {orders.length === 0 ? (
+        {(orders || []).length === 0 ? (
           <EmptyState
             heading="No orders found"
             action={{
