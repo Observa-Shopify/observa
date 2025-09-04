@@ -311,7 +311,17 @@ export default function SessionCountPage() {
   }
 
   return (
-    <Page title="Performance Analytics" fullWidth>
+    <Page 
+      title="Performance Analytics" 
+      fullWidth
+      secondaryActions={[
+        {
+          content: "Settings",
+          url: "/app/settings",
+          accessibilityLabel: "Go to app settings"
+        }
+      ]}
+    >
       <BlockStack gap="400">
         {/* Key Metrics Grid */}
         <StatsGrid columns={{ xs: 2, sm: 3, md: 4, lg: 6 }}>

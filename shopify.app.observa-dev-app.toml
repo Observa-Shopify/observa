@@ -3,7 +3,7 @@
 client_id = "feaaffcbe235d0c4ea027da7deae933e"
 name = "observa-dev-app"
 handle = "observa-dev-app"
-application_url = "https://prevention-reduced-counters-seed.trycloudflare.com"
+application_url = "https://voters-veteran-guru-corner.trycloudflare.com"
 embedded = true
 
 [build]
@@ -19,9 +19,9 @@ scopes = "read_checkouts,read_customer_events,read_customers,read_orders,read_pi
 
 [auth]
 redirect_urls = [
-  "https://prevention-reduced-counters-seed.trycloudflare.com/auth/callback",
-  "https://prevention-reduced-counters-seed.trycloudflare.com/auth/shopify/callback",
-  "https://prevention-reduced-counters-seed.trycloudflare.com/api/auth/callback"
+  "https://voters-veteran-guru-corner.trycloudflare.com/auth/callback",
+  "https://voters-veteran-guru-corner.trycloudflare.com/auth/shopify/callback",
+  "https://voters-veteran-guru-corner.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]
