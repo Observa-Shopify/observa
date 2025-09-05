@@ -3,7 +3,7 @@
 client_id = "12cb9c291d7258d9570888f48b059038"
 name = "observa dev"
 handle = "observa-dev"
-application_url = "https://reasoning-istanbul-double-loans.trycloudflare.com"
+application_url = "https://onion-israeli-smell-kinds.trycloudflare.com"
 embedded = true
 
 [build]
@@ -18,7 +18,7 @@ api_version = "2025-07"
 scopes = "read_checkouts,read_customer_events,read_customers,read_orders,read_pixels,write_orders,write_pixels,write_products"
 
 [auth]
-redirect_urls = ["https://reasoning-istanbul-double-loans.trycloudflare.com/auth/callback", "https://reasoning-istanbul-double-loans.trycloudflare.com/auth/shopify/callback", "https://reasoning-istanbul-double-loans.trycloudflare.com/api/auth/callback"]
+redirect_urls = ["https://onion-israeli-smell-kinds.trycloudflare.com/auth/callback", "https://onion-israeli-smell-kinds.trycloudflare.com/auth/shopify/callback", "https://onion-israeli-smell-kinds.trycloudflare.com/api/auth/callback"]
 
 [pos]
 embedded = false

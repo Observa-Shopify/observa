@@ -44,6 +44,7 @@ export const loader = async ({ request }) => {
     select: {
       conversionRateLow: true,
       conversionRateThreshold: true, // 👈 include threshold
+      sendConversionAlert: true,
     },
   });
 
@@ -66,7 +67,8 @@ export const loader = async ({ request }) => {
     });
   }
 
-  const { conversionRateLow, conversionRateThreshold } = settings;
+  const { conversionRateLow, conversionRateThreshold, sendConversionAlert } = settings;
+
 
   const SHOPIFY_APP_URL = process.env.SHOPIFY_APP_URL;
 
@@ -189,7 +191,8 @@ export const loader = async ({ request }) => {
       overallCheckoutInitiationRate: parseFloat(overallCheckoutInitiationRate),
       SHOPIFY_APP_URL,
       conversionRateLow,
-      conversionRateThreshold
+      conversionRateThreshold,
+      sendConversionAlert
     });
   } catch (error) {
     console.error('Error in loader:', error);
@@ -206,7 +209,8 @@ export const loader = async ({ request }) => {
       overallCheckoutInitiationRate: 0,
       SHOPIFY_APP_URL,
       conversionRateLow,
-      conversionRateThreshold: conversionRateThreshold || 0
+      conversionRateThreshold: conversionRateThreshold || 0,
+      sendConversionAlert: false,
     });
   }
 }
@@ -224,13 +228,16 @@ export default function SessionCountPage() {
     overallCheckoutInitiationRate = 0,
     SHOPIFY_APP_URL,
     conversionRateLow = false,
-    conversionRateThreshold = 0
+    conversionRateThreshold = 0,
+    sendConversionAlert
   } = useLoaderData();
 
   const triggerFetcher = useFetcher()
 
   const isClient = useClientOnly();
   const [alert, setAlert] = useState("");
+
+  console.log("object11111111111111",conversionRateLow, conversionRateThreshold, sendConversionAlert)
 
 
   // Search and pagination for daily stats table
@@ -262,11 +269,31 @@ export default function SessionCountPage() {
   useEffect(() => {
     console.log("conversionRateThreshold", conversionRateThreshold)
     console.log("conversionRateLow", conversionRateLow)
-    if (overallConversionRate < conversionRateThreshold && conversionRateLow === true) {
-      console.log("conversion rate is low")
+    console.log("sendConversionAlert", sendConversionAlert)
+    
+    // Send alert only when conversion rate is below threshold AND flag is false
+    if (overallConversionRate < conversionRateThreshold && conversionRateLow === true && sendConversionAlert === false) {
+      console.log("conversion rate is low, sending alert")
       triggerDummyAlert('conversionRateLow')
+      
+      // Set the flag to true to prevent repeated alerts
+      triggerFetcher.submit({ type: 'setSendConversionAlert', value: true }, {
+        method: "post",
+        action: "/app/settings/update",
+        encType: "application/json"
+      });
     }
-  }, [overallConversionRate])
+    
+    // Reset the flag when conversion rate returns to safe zone
+    if (overallConversionRate >= conversionRateThreshold && sendConversionAlert === true) {
+      console.log("conversion rate is back to safe zone, resetting alert flag")
+      triggerFetcher.submit({ type: 'setSendConversionAlert', value: false }, {
+        method: "post",
+        action: "/app/settings/update",
+        encType: "application/json"
+      });
+    }
+  }, [overallConversionRate, conversionRateThreshold, conversionRateLow, sendConversionAlert])
 
   const {
     currentPage,

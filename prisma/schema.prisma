@@ -107,6 +107,9 @@ model AlertSettings {
   updatedAt             DateTime @updatedAt
   slackWebhookUrl       String? // New field for Slack webhook
   slackEnabled          Boolean  @default(false) // New field to enable/disable Slack
+  sendConversionAlert   Boolean  @default(false) // Flag to prevent repeated conversion alerts
+  sendSalesAlert        Boolean  @default(false) // Flag to prevent repeated sales alerts
+  sendTrafficAlert      Boolean  @default(false) // Flag to prevent repeated traffic alerts
 
   @@unique([shop])
 }

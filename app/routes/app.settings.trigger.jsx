@@ -59,8 +59,8 @@ export const action = async ({ request }) => {
     // -------------------- Send Email --------------------
     if (isEmailEnabled && alertEmail) {
         const transporter = nodemailer.createTransport({
-            host: 'smtp.gmail.com',
-            port: process.env.PORT,
+            host: process.env.SMTP_HOST,
+            port: parseInt(process.env.SMTP_PORT, 10),
             secure: true,
             auth: {
                 user: process.env.EMAIL,

@@ -29,14 +29,15 @@ export const loader = async ({ request }) => {
     where: { shop },
     select: {
       trafficRateLow: true,
+      sendTrafficAlert: true,
     },
   });
 
   if (!settings) {
-    return json({ trafficRateLow: false });
+    return json({ trafficRateLow: false, sendTrafficAlert: false });
   }
 
-  const { trafficRateLow } = settings;
+  const { trafficRateLow, sendTrafficAlert } = settings;
 
   // console.log("settt", settings)
 
@@ -125,7 +126,8 @@ export const loader = async ({ request }) => {
     monthlyAverageCount,
     appEmbedEnabled,
     last30DaysTraffic,
-    trafficRateLow
+    trafficRateLow,
+    sendTrafficAlert
   });
 };
 
@@ -137,7 +139,8 @@ export default function TrafficDashboard() {
     monthlyAverageCount,
     appEmbedEnabled,
     last30DaysTraffic,
-    trafficRateLow
+    trafficRateLow,
+    sendTrafficAlert
   } = useLoaderData();
 
   const isClient = useClientOnly();
@@ -159,13 +162,34 @@ export default function TrafficDashboard() {
   };
 
   useEffect(() => {
-    // console.log("trafficRateLow", trafficRateLow)
-    // console.log("trafficRateLow", trafficRateLow)
-    if (trafficRateLow === true && currentWeekCount < previousWeekCount) {
-      // console.log("trafficRateLow rate is low")
+    console.log("trafficRateLow", trafficRateLow)
+    console.log("sendTrafficAlert", sendTrafficAlert)
+    console.log("currentWeekCount", currentWeekCount)
+    console.log("previousWeekCount", previousWeekCount)
+    
+    // Send alert only when traffic is down AND flag is false
+    if (trafficRateLow === true && currentWeekCount < previousWeekCount && sendTrafficAlert === false) {
+      console.log("traffic rate is low, sending alert")
       triggerDummyAlert('trafficRateLow')
+      
+      // Set the flag to true to prevent repeated alerts
+      triggerFetcher.submit({ type: 'setSendTrafficAlert', value: true }, {
+        method: "post",
+        action: "/app/settings/update",
+        encType: "application/json"
+      });
     }
-  }, [trafficRateLow])
+    
+    // Reset the flag when traffic returns to safe zone
+    if (currentWeekCount >= previousWeekCount && sendTrafficAlert === true) {
+      console.log("traffic rate is back to safe zone, resetting alert flag")
+      triggerFetcher.submit({ type: 'setSendTrafficAlert', value: false }, {
+        method: "post",
+        action: "/app/settings/update",
+        encType: "application/json"
+      });
+    }
+  }, [currentWeekCount, previousWeekCount, trafficRateLow, sendTrafficAlert])
 
   // Prepare chart data
   const chartData = last30DaysTraffic.map(({ date, count }) => ({

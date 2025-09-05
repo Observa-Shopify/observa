@@ -53,14 +53,15 @@ export const loader = async ({ request }) => {
     where: { shop },
     select: {
       orderGrowthLow: true,
+      sendSalesAlert: true,
     },
   });
 
   if (!settings) {
-    return json({ orderGrowthLow: false });
+    return json({ orderGrowthLow: false, sendSalesAlert: false });
   }
 
-  const { orderGrowthLow } = settings;
+  const { orderGrowthLow, sendSalesAlert } = settings;
 
   // console.log("settt", settings)
 
@@ -190,7 +191,8 @@ export const loader = async ({ request }) => {
     averageOrderValueGrowthPercentage,
     current7DaysSales,
     previous7DaysSales,
-    orderGrowthLow
+    orderGrowthLow,
+    sendSalesAlert
   });
 };
 
@@ -204,7 +206,8 @@ export default function SalesDashboard() {
     averageOrderValueGrowthPercentage,
     current7DaysSales = 0,
     previous7DaysSales = 0,
-    orderGrowthLow
+    orderGrowthLow,
+    sendSalesAlert
   } = useLoaderData();
     const triggerFetcher = useFetcher();
       const [alert, setAlert] = useState("");
@@ -269,13 +272,34 @@ export default function SalesDashboard() {
   };
 
   useEffect(() => {
-    // console.log("orderGrowthLow", orderGrowthLow)
-    // console.log("orderGrowthLow", orderGrowthLow)
-    if (orderGrowthLow === true && current7DaysSales < previous7DaysSales) {
-      // console.log("orderGrowthLow rate is low")
+    console.log("orderGrowthLow", orderGrowthLow)
+    console.log("sendSalesAlert", sendSalesAlert)
+    console.log("current7DaysSales", current7DaysSales)
+    console.log("previous7DaysSales", previous7DaysSales)
+    
+    // Send alert only when sales are down AND flag is false
+    if (orderGrowthLow === true && current7DaysSales < previous7DaysSales && sendSalesAlert === false) {
+      console.log("sales growth is low, sending alert")
       triggerDummyAlert('orderGrowthLow')
+      
+      // Set the flag to true to prevent repeated alerts
+      triggerFetcher.submit({ type: 'setSendSalesAlert', value: true }, {
+        method: "post",
+        action: "/app/settings/update",
+        encType: "application/json"
+      });
     }
-  }, [current7DaysSales])  
+    
+    // Reset the flag when sales return to safe zone
+    if (current7DaysSales >= previous7DaysSales && sendSalesAlert === true) {
+      console.log("sales growth is back to safe zone, resetting alert flag")
+      triggerFetcher.submit({ type: 'setSendSalesAlert', value: false }, {
+        method: "post",
+        action: "/app/settings/update",
+        encType: "application/json"
+      });
+    }
+  }, [current7DaysSales, previous7DaysSales, orderGrowthLow, sendSalesAlert])  
 
   if (isLoading) {
     return (
