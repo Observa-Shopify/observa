@@ -272,14 +272,14 @@ export default function SalesDashboard() {
   };
 
   useEffect(() => {
-    console.log("orderGrowthLow", orderGrowthLow)
-    console.log("sendSalesAlert", sendSalesAlert)
-    console.log("current7DaysSales", current7DaysSales)
-    console.log("previous7DaysSales", previous7DaysSales)
+    // console.log("orderGrowthLow", orderGrowthLow)
+    // console.log("sendSalesAlert", sendSalesAlert)
+    // console.log("current7DaysSales", current7DaysSales)
+    // console.log("previous7DaysSales", previous7DaysSales)
     
     // Send alert only when sales are down AND flag is false
     if (orderGrowthLow === true && current7DaysSales < previous7DaysSales && sendSalesAlert === false) {
-      console.log("sales growth is low, sending alert")
+      // console.log("sales growth is low, sending alert")
       triggerDummyAlert('orderGrowthLow')
       
       // Set the flag to true to prevent repeated alerts
@@ -292,7 +292,7 @@ export default function SalesDashboard() {
     
     // Reset the flag when sales return to safe zone
     if (current7DaysSales >= previous7DaysSales && sendSalesAlert === true) {
-      console.log("sales growth is back to safe zone, resetting alert flag")
+      // console.log("sales growth is back to safe zone, resetting alert flag")
       triggerFetcher.submit({ type: 'setSendSalesAlert', value: false }, {
         method: "post",
         action: "/app/settings/update",
