@@ -286,7 +286,7 @@ export default function SessionCountPage() {
     
     // Reset the flag when conversion rate returns to safe zone
     if (overallConversionRate >= conversionRateThreshold && sendConversionAlert === true) {
-      console.log("conversion rate is back to safe zone, resetting alert flag")
+      console.log("conversion rate is back to safe zone, resetting alert flag") 
       triggerFetcher.submit({ type: 'setSendConversionAlert', value: false }, {
         method: "post",
         action: "/app/settings/update",
