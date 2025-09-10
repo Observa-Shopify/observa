@@ -162,14 +162,14 @@ export default function TrafficDashboard() {
   };
 
   useEffect(() => {
-    // console.log("trafficRateLow", trafficRateLow)
-    // console.log("sendTrafficAlert", sendTrafficAlert)
-    // console.log("currentWeekCount", currentWeekCount)
-    // console.log("previousWeekCount", previousWeekCount)
+    console.log("trafficRateLow", trafficRateLow)
+    console.log("sendTrafficAlert", sendTrafficAlert)
+    console.log("currentWeekCount", currentWeekCount)
+    console.log("previousWeekCount", previousWeekCount)
     
     // Send alert only when traffic is down AND flag is false
     if (trafficRateLow === true && currentWeekCount < previousWeekCount && sendTrafficAlert === false) {
-      // console.log("traffic rate is low, sending alert")
+      console.log("traffic rate is low, sending alert")
       triggerDummyAlert('trafficRateLow')
       
       // Set the flag to true to prevent repeated alerts
@@ -182,7 +182,7 @@ export default function TrafficDashboard() {
     
     // Reset the flag when traffic returns to safe zone
     if (currentWeekCount >= previousWeekCount && sendTrafficAlert === true) {
-      // console.log("traffic rate is back to safe zone, resetting alert flag")
+      console.log("traffic rate is back to safe zone, resetting alert flag")
       triggerFetcher.submit({ type: 'setSendTrafficAlert', value: false }, {
         method: "post",
         action: "/app/settings/update",

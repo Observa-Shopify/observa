@@ -1,18 +1,18 @@
 import { json } from "@remix-run/node";
 import { useLoaderData, useFetcher } from "@remix-run/react";
 import prisma from "../db.server";
-import { 
-    Card, 
-    Page, 
-    TextField, 
-    Checkbox, 
-    Button, 
-    Banner, 
-    Text, 
-    BlockStack, 
-    InlineGrid, 
-    Box, 
-    Divider 
+import {
+    Card,
+    Page,
+    TextField,
+    Checkbox,
+    Button,
+    Banner,
+    Text,
+    BlockStack,
+    InlineGrid,
+    Box,
+    Divider
 } from "@shopify/polaris";
 import { useState, useEffect } from "react";
 import { authenticate } from "../shopify.server";
@@ -93,7 +93,7 @@ export default function Settings() {
 
     // Check for unsaved changes
     useEffect(() => {
-        const hasChanges = 
+        const hasChanges =
             formState.alertEmail !== (settings.alertEmail || "") ||
             formState.slackWebhookUrl !== (settings.slackWebhookUrl || "") ||
             formState.slackEnabled !== settings.slackEnabled ||
@@ -102,7 +102,7 @@ export default function Settings() {
             formState.trafficRateLow !== settings.trafficRateLow ||
             formState.conversionRateLow !== settings.conversionRateLow ||
             formState.conversionRateThreshold !== (settings.conversionRateThreshold || "");
-        
+
         setHasUnsavedChanges(hasChanges);
     }, [formState, settings]);
 
@@ -192,10 +192,14 @@ export default function Settings() {
 
     return (
         <>
-            <Page 
+            <Page
                 title="Alert Settings"
                 divider
             >
+                <div style={{ marginBottom: '20px' }}>
+                    <Banner title="Set Email to Un-Spam for better Reputation" onDismiss={() => { }}>
+                    </Banner>
+                </div>
                 <saveFetcher.Form method="post">
                     <BlockStack gap={{ xs: "800", sm: "400" }}>
                         {/* Notification Settings Section */}
@@ -325,36 +329,36 @@ export default function Settings() {
                                         Click a button below to send a test alert to your configured email or Slack channel.
                                     </Text>
                                     <InlineGrid columns={{ xs: 1, sm: 2 }} gap="200">
-                                        <Button 
-                                            onClick={() => triggerDummyAlert("revenueRateLow")} 
+                                        <Button
+                                            onClick={() => triggerDummyAlert("revenueRateLow")}
                                             disabled={!formState.revenueRateLow || triggerFetcher.state === 'submitting'}
                                             size="slim"
                                         >
                                             Test Low Revenue
                                         </Button>
-                                        <Button 
-                                            onClick={() => triggerDummyAlert("orderGrowthLow")} 
+                                        <Button
+                                            onClick={() => triggerDummyAlert("orderGrowthLow")}
                                             disabled={!formState.orderGrowthLow || triggerFetcher.state === 'submitting'}
                                             size="slim"
                                         >
                                             Test Low Order Growth
                                         </Button>
-                                        <Button 
-                                            onClick={() => triggerDummyAlert("trafficRateLow")} 
+                                        <Button
+                                            onClick={() => triggerDummyAlert("trafficRateLow")}
                                             disabled={!formState.trafficRateLow || triggerFetcher.state === 'submitting'}
                                             size="slim"
                                         >
                                             Test Low Traffic
                                         </Button>
-                                        <Button 
-                                            onClick={() => triggerDummyAlert("conversionRateLow")} 
+                                        <Button
+                                            onClick={() => triggerDummyAlert("conversionRateLow")}
                                             disabled={!formState.conversionRateLow || triggerFetcher.state === 'submitting'}
                                             size="slim"
                                         >
                                             Test Low Conversion Rate
                                         </Button>
-                                        <Button 
-                                            onClick={() => triggerDummyAlert("slackTest")} 
+                                        <Button
+                                            onClick={() => triggerDummyAlert("slackTest")}
                                             disabled={!formState.slackEnabled || !formState.slackWebhookUrl || triggerFetcher.state === 'submitting'}
                                             size="slim"
                                         >
@@ -382,8 +386,8 @@ export default function Settings() {
 
             {/* SaveBar Component */}
             <SaveBar id="settings-save-bar" discardConfirmation>
-                <button 
-                    variant="primary" 
+                <button
+                    variant="primary"
                     onClick={handleSave}
                     disabled={saveFetcher.state === 'submitting'}
                     loading={saveFetcher.state === 'submitting' ? '' : undefined}

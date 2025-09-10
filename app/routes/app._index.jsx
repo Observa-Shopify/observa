@@ -256,7 +256,7 @@ export default function SessionCountPage() {
   );
 
   const triggerDummyAlert = (type) => {
-    // console.log("ddddddddddddddddddddddd")
+    console.log("ccccccccccc")
     triggerFetcher.submit({ type }, {
       method: "post",
       action: "/app/settings/trigger",
@@ -267,13 +267,13 @@ export default function SessionCountPage() {
   };
 
   useEffect(() => {
-    // console.log("conversionRateThreshold", conversionRateThreshold)
-    // console.log("conversionRateLow", conversionRateLow)
-    // console.log("sendConversionAlert", sendConversionAlert)
+    console.log("conversionRateThreshold", conversionRateThreshold)
+    console.log("conversionRateLow", conversionRateLow)
+    console.log("sendConversionAlert", sendConversionAlert)
     
     // Send alert only when conversion rate is below threshold AND flag is false
     if (overallConversionRate < conversionRateThreshold && conversionRateLow === true && sendConversionAlert === false) {
-      // console.log("conversion rate is low, sending alert")
+      console.log("conversion rate is low, sending alert")
       triggerDummyAlert('conversionRateLow')
       
       // Set the flag to true to prevent repeated alerts
@@ -286,7 +286,7 @@ export default function SessionCountPage() {
     
     // Reset the flag when conversion rate returns to safe zone
     if (overallConversionRate >= conversionRateThreshold && sendConversionAlert === true) {
-      // console.log("conversion rate is back to safe zone, resetting alert flag") 
+      console.log("conversion rate is back to safe zone, resetting alert flag") 
       triggerFetcher.submit({ type: 'setSendConversionAlert', value: false }, {
         method: "post",
         action: "/app/settings/update",
