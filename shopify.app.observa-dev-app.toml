@@ -3,7 +3,7 @@
 client_id = "feaaffcbe235d0c4ea027da7deae933e"
 name = "observa-dev-app"
 handle = "observa-dev-app"
-application_url = "https://rw-smithsonian-chess-iowa.trycloudflare.com"
+application_url = "https://fruits-campus-asbestos-dressing.trycloudflare.com"
 embedded = true
 
 [build]
@@ -19,9 +19,9 @@ scopes = "read_checkouts,read_customer_events,read_customers,read_orders,read_pi
 
 [auth]
 redirect_urls = [
-  "https://rw-smithsonian-chess-iowa.trycloudflare.com/auth/callback",
-  "https://rw-smithsonian-chess-iowa.trycloudflare.com/auth/shopify/callback",
-  "https://rw-smithsonian-chess-iowa.trycloudflare.com/api/auth/callback"
+  "https://fruits-campus-asbestos-dressing.trycloudflare.com/auth/callback",
+  "https://fruits-campus-asbestos-dressing.trycloudflare.com/auth/shopify/callback",
+  "https://fruits-campus-asbestos-dressing.trycloudflare.com/api/auth/callback"
 ]
 
 [pos]

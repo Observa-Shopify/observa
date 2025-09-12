@@ -1,4 +1,3 @@
-
 import { json } from '@remix-run/node';
 import { useFetcher, useLoaderData } from '@remix-run/react';
 import { authenticate } from '../shopify.server';
@@ -7,6 +6,7 @@ import {
   Page,
   BlockStack,
 } from '@shopify/polaris';
+import { SetupGuideExample } from '../components/SetupGuide.jsx';
 import { useState, useMemo, useEffect } from 'react';
 import {
   MetricCard,
@@ -38,6 +38,7 @@ export const loader = async ({ request }) => {
 
   const cleanedShop = session.shop;
   const shop = cleanedShop
+  const shopSlug = shop?.replace?.('.myshopify.com', '') || shop;
 
   const settings = await prisma.alertSettings.findUnique({
     where: { shop },
@@ -45,15 +46,17 @@ export const loader = async ({ request }) => {
       conversionRateLow: true,
       conversionRateThreshold: true, // 👈 include threshold
       sendConversionAlert: true,
+      slackWebhookUrl: true,
+      slackEnabled: true,
     },
   });
-
-  // console.log("sssssssssssssssssssssssssssssssssssssss", settings)
 
   if (!settings) {
     return json({ 
       conversionRateLow: false,
       shop: cleanedShop,
+      shopSlug,
+      settings: null,
       dailyStats: [],
       totalSessionCount: 0,
       totalOrderCount: 0,
@@ -181,6 +184,8 @@ export const loader = async ({ request }) => {
 
     return json({
       shop: cleanedShop,
+      shopSlug,
+      settings,
       dailyStats,
       totalSessionCount,
       totalOrderCount,
@@ -199,6 +204,8 @@ export const loader = async ({ request }) => {
     // Return safe defaults on error
     return json({
       shop: cleanedShop,
+      shopSlug,
+      settings: null,
       dailyStats: [],
       totalSessionCount: 0,
       totalOrderCount: 0,
@@ -218,6 +225,8 @@ export const loader = async ({ request }) => {
 export default function SessionCountPage() {
   const {
     shop,
+    shopSlug,
+    settings,
     dailyStats = [],
     totalSessionCount = 0,
     totalOrderCount = 0,
@@ -237,9 +246,6 @@ export default function SessionCountPage() {
   const isClient = useClientOnly();
   const [alert, setAlert] = useState("");
 
-  console.log("object11111111111111",conversionRateLow, conversionRateThreshold, sendConversionAlert)
-
-
   // Search and pagination for daily stats table
   const searchableFields = [
     'date',
@@ -256,7 +262,6 @@ export default function SessionCountPage() {
   );
 
   const triggerDummyAlert = (type) => {
-    console.log("ccccccccccc")
     triggerFetcher.submit({ type }, {
       method: "post",
       action: "/app/settings/trigger",
@@ -266,14 +271,9 @@ export default function SessionCountPage() {
     setTimeout(() => setAlert(""), 3000);
   };
 
-  useEffect(() => {
-    console.log("conversionRateThreshold", conversionRateThreshold)
-    console.log("conversionRateLow", conversionRateLow)
-    console.log("sendConversionAlert", sendConversionAlert)
-    
+  useEffect(() => {    
     // Send alert only when conversion rate is below threshold AND flag is false
     if (overallConversionRate < conversionRateThreshold && conversionRateLow === true && sendConversionAlert === false) {
-      console.log("conversion rate is low, sending alert")
       triggerDummyAlert('conversionRateLow')
       
       // Set the flag to true to prevent repeated alerts
@@ -286,7 +286,6 @@ export default function SessionCountPage() {
     
     // Reset the flag when conversion rate returns to safe zone
     if (overallConversionRate >= conversionRateThreshold && sendConversionAlert === true) {
-      console.log("conversion rate is back to safe zone, resetting alert flag") 
       triggerFetcher.submit({ type: 'setSendConversionAlert', value: false }, {
         method: "post",
         action: "/app/settings/update",
@@ -350,6 +349,8 @@ export default function SessionCountPage() {
       ]}
     >
       <BlockStack gap="400">
+        {/* Setup Guide – hidden automatically when complete or dismissed */}
+        <SetupGuideExample settings={settings || {}} shopSlug={shopSlug} />
         {/* Key Metrics Grid */}
         <StatsGrid columns={{ xs: 2, sm: 3, md: 4, lg: 6 }}>
           {/* Total Sessions */}

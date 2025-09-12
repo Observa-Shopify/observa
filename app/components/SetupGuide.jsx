@@ -27,6 +27,10 @@ import styles from "./SetupGuide.module.css";
 
 export const SetupGuideExample = ({ settings, shopSlug }) => {
   const [items, setItems] = useState(buildItems(settings, shopSlug));
+  const [hidden, setHidden] = useState(false);
+
+  const allDone = items.every((i) => i.complete);
+  if (hidden || allDone) return null;
 
   const onStepComplete = async (id) => {
     try {
@@ -41,7 +45,9 @@ export const SetupGuideExample = ({ settings, shopSlug }) => {
     }
   };
 
-  return <SetupGuide onStepComplete={onStepComplete} items={items} />;
+  return (
+    <SetupGuide onDismiss={() => setHidden(true)} onStepComplete={onStepComplete} items={items} />
+  );
 };
 
 function buildItems(settings, shopSlug) {
@@ -65,13 +71,6 @@ function buildItems(settings, shopSlug) {
           url: "/app/settings",
         },
       },
-      secondaryButton: {
-        content: "Get Slack Webhook",
-        props: {
-          url: "https://api.slack.com/apps",
-          external: true,
-        },
-      },
     },
     {
       id: 1,
@@ -86,8 +85,11 @@ function buildItems(settings, shopSlug) {
       primaryButton: {
         content: "Open Theme Editor",
         props: {
-          url: themeEditorUrl,
-          external: true,
+          onClick: () => {
+            if (typeof window !== 'undefined') {
+              window.open(themeEditorUrl, '_blank', 'noopener,noreferrer');
+            }
+          },
         },
       },
     },
