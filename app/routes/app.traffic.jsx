@@ -20,6 +20,7 @@ import {
 } from "../components/shared";
 import { APP_CONSTANTS, formatNumber, useClientOnly } from "../utils";
 
+
 export const loader = async ({ request }) => {
   const {
     session: { shop },
