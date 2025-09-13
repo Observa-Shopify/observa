@@ -41,7 +41,6 @@ export default function App() {
           <Link to="/app/traffic">Traffic Rate</Link>
           <Link to="/app/plans">Plans</Link>
           <Link to="/app/settings">Settings</Link>
-          <Link to="/app/guide">Guide</Link>
         </NavMenu>
         <Outlet />
       </MantleProvider>
