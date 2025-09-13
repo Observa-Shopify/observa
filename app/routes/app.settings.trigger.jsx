@@ -50,6 +50,14 @@ function getEmailTemplate(type, shop) {
             This is a test alert sent from your Shopify monitoring app for <strong>${shop}</strong>.
           `
         };
+      case "emailTest":
+        return {
+          title: "✉️ Test Email Delivery",
+          body: `
+            This is a <strong>test email</strong> from your Observa monitoring app for <strong>${shop}</strong>.<br><br>
+            Please locate this email in your inbox (and spam folder if necessary) and mark it as <strong>Not Spam</strong> to improve future deliverability.
+          `
+        };
       default:
         return {
           title: "⚠️ Unknown Alert",
@@ -114,6 +122,8 @@ function getSlackMessage(type, shop) {
       return `🚨 Low Conversion Rate detected in *${shop}*. Many visitors are not converting to customers.`;
     case "slackTest":
       return `✅ Slack Test Notification: This is a test alert for *${shop}*.`;
+    case "emailTest":
+      return `✉️ Test Email Delivery for *${shop}*.`;
     default:
       return `⚠️ Unknown alert type received for *${shop}*.`;
   }
@@ -142,6 +152,11 @@ export const action = async ({ request }) => {
     case "slackTest":
       isSlackEnabled = slackEnabled;
       alertMessage = "Slack Test Notification: A test alert has been triggered.";
+      break;
+    case "emailTest":
+      isEmailEnabled = true; // Always allow sending test email if alertEmail configured
+      isSlackEnabled = false;
+      alertMessage = "Test Email Delivery: A test email has been sent if an address is configured.";
       break;
     case "revenueRateLow":
       isEmailEnabled = revenueRateLow;
