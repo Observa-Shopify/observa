@@ -13,7 +13,7 @@ const OrdersView = ({ orders, totalSales }) => {
         </Card>
 
         <Card title="Recent Orders" sectioned>
-          {orders.length === 0 ? (
+          {(orders || []).length === 0 ? (
             <EmptyState
               heading="No orders found"
               action={{ content: 'Go to Shopify admin', url: 'https://admin.shopify.com' }}
@@ -23,7 +23,7 @@ const OrdersView = ({ orders, totalSales }) => {
             </EmptyState>
           ) : (
             <BlockStack gap="300">
-              {orders.map((order) => (
+              {(orders || []).map((order) => (
                 <Card key={order.id} sectioned>
                   <BlockStack gap="200">
                     <Text as="h3" variant="headingMd">

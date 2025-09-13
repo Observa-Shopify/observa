@@ -3,7 +3,7 @@ import { register } from "@shopify/web-pixels-extension";
 
 register(({ analytics, browser, settings }) => {
   const SESSION_COOKIE_NAME = 'my_shop_session_id';
-  const SESSION_EXPIRY_NAME = 'my_shop_session_expiry';
+  const SESSION_EXPIRY_NAME = 'my_shop_session_expiry' ;
   const COOKIE_LIFETIME_SECONDS = 30 * 60; // 30 minutes
   const CHECKOUT_COMPLETED_EXPIRY_SECONDS = 0;
 

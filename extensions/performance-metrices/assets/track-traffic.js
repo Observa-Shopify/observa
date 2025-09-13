@@ -5,9 +5,7 @@
 
     if (!shop) return console.error("❌ No shop domain provided!");
 
-    const APP_URL='https://observa-two.vercel.app'
-
-    fetch(`${APP_URL}/api/track-traffic`,  {
+    fetch(`https://observa-two.vercel.app/api/track-traffic`,  {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -3,12 +3,13 @@ import { useState, useEffect, useMemo } from 'react';
 /**
  * Hook for managing pagination state
  */
-export const usePagination = (items, itemsPerPage = 10) => {
+export const usePagination = (items = [], itemsPerPage = 10) => {
   const [currentPage, setCurrentPage] = useState(1);
 
-  const totalPages = Math.ceil(items.length / itemsPerPage);
+  const totalPages = Math.ceil((items || []).length / itemsPerPage);
   
   const paginatedItems = useMemo(() => {
+    if (!items) return [];
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return items.slice(startIndex, endIndex);
@@ -39,11 +40,11 @@ export const usePagination = (items, itemsPerPage = 10) => {
 /**
  * Hook for managing search functionality
  */
-export const useSearch = (items, searchableFields = []) => {
+export const useSearch = (items = [], searchableFields = []) => {
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredItems = useMemo(() => {
-    if (!searchQuery.trim()) return items;
+    if (!searchQuery.trim() || !items) return items || [];
     
     const lowerCaseQuery = searchQuery.toLowerCase();
     return items.filter(item =>
@@ -61,7 +62,7 @@ export const useSearch = (items, searchableFields = []) => {
     setSearchQuery,
     filteredItems,
     clearSearch,
-    hasResults: filteredItems.length > 0,
+    hasResults: (filteredItems || []).length > 0,
   };
 };
 

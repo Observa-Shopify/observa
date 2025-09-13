@@ -1,5 +1,5 @@
 import { json } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
+import { useFetcher, useLoaderData } from "@remix-run/react";
 import {
   Card,
   Text,
@@ -11,18 +11,35 @@ import {
 } from "@shopify/polaris";
 import prisma from "../db.server";
 import { authenticate } from "../shopify.server";
-import { 
-  MetricCard, 
-  StatsGrid, 
+import {
+  MetricCard,
+  StatsGrid,
   SparkChart,
   LoadingState
 } from "../components/shared";
 import { APP_CONSTANTS, formatNumber, useClientOnly } from "../utils";
+import { useEffect, useState } from "react";
 
 export const loader = async ({ request }) => {
   const {
     session: { shop },
   } = await authenticate.admin(request);
+
+  const settings = await prisma.alertSettings.findUnique({
+    where: { shop },
+    select: {
+      trafficRateLow: true,
+      sendTrafficAlert: true,
+    },
+  });
+
+  if (!settings) {
+    return json({ trafficRateLow: false, sendTrafficAlert: false });
+  }
+
+  const { trafficRateLow, sendTrafficAlert } = settings;
+
+  // console.log("settt", settings)
 
   let currentWeekCount = 0;
   let previousWeekCount = 0;
@@ -109,6 +126,8 @@ export const loader = async ({ request }) => {
     monthlyAverageCount,
     appEmbedEnabled,
     last30DaysTraffic,
+    trafficRateLow,
+    sendTrafficAlert
   });
 };
 
@@ -120,13 +139,57 @@ export default function TrafficDashboard() {
     monthlyAverageCount,
     appEmbedEnabled,
     last30DaysTraffic,
+    trafficRateLow,
+    sendTrafficAlert
   } = useLoaderData();
 
   const isClient = useClientOnly();
-
+  const triggerFetcher = useFetcher();
+  const [alert, setAlert] = useState("");
   const isTrafficHealthy = percentChange >= 0;
   const trafficStatusColor = isTrafficHealthy ? "success" : "critical";
   const trafficStatusLabel = isTrafficHealthy ? "Healthy" : "Dropped";
+
+  const triggerDummyAlert = (type) => {
+    // console.log("ddddddddddddddddddddddd")
+    triggerFetcher.submit({ type }, {
+      method: "post",
+      action: "/app/settings/trigger",
+      encType: "application/json"
+    });
+    setAlert(type);
+    setTimeout(() => setAlert(""), 3000);
+  };
+
+  useEffect(() => {
+    console.log("trafficRateLow", trafficRateLow)
+    console.log("sendTrafficAlert", sendTrafficAlert)
+    console.log("currentWeekCount", currentWeekCount)
+    console.log("previousWeekCount", previousWeekCount)
+    
+    // Send alert only when traffic is down AND flag is false
+    if (trafficRateLow === true && currentWeekCount < previousWeekCount && sendTrafficAlert === false) {
+      console.log("traffic rate is low, sending alert")
+      triggerDummyAlert('trafficRateLow')
+      
+      // Set the flag to true to prevent repeated alerts
+      triggerFetcher.submit({ type: 'setSendTrafficAlert', value: true }, {
+        method: "post",
+        action: "/app/settings/update",
+        encType: "application/json"
+      });
+    }
+    
+    // Reset the flag when traffic returns to safe zone
+    if (currentWeekCount >= previousWeekCount && sendTrafficAlert === true) {
+      console.log("traffic rate is back to safe zone, resetting alert flag")
+      triggerFetcher.submit({ type: 'setSendTrafficAlert', value: false }, {
+        method: "post",
+        action: "/app/settings/update",
+        encType: "application/json"
+      });
+    }
+  }, [currentWeekCount, previousWeekCount, trafficRateLow, sendTrafficAlert])
 
   // Prepare chart data
   const chartData = last30DaysTraffic.map(({ date, count }) => ({
@@ -143,8 +206,8 @@ export default function TrafficDashboard() {
   }
 
   return (
-    <Page 
-      title="Store Traffic Overview" 
+    <Page
+      title="Store Traffic Overview"
       subtitle="Get insights into your store's visitor activity and trends."
       fullWidth
     >
@@ -204,9 +267,9 @@ export default function TrafficDashboard() {
                 title="Weekly Change"
                 value={`${formatNumber(percentChange)}%`}
                 formatValue={false}
-                badge={{ 
-                  text: percentChange >= 0 ? 'Up' : 'Down', 
-                  tone: percentChange >= 0 ? 'success' : 'critical' 
+                badge={{
+                  text: percentChange >= 0 ? 'Up' : 'Down',
+                  tone: percentChange >= 0 ? 'success' : 'critical'
                 }}
               />
 

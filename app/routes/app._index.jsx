@@ -1,13 +1,13 @@
-
 import { json } from '@remix-run/node';
-import { useLoaderData } from '@remix-run/react';
+import { useFetcher, useLoaderData } from '@remix-run/react';
 import { authenticate } from '../shopify.server';
 import prisma from '../db.server';
 import {
   Page,
   BlockStack,
 } from '@shopify/polaris';
-import { useState, useMemo } from 'react';
+import { SetupGuideExample } from '../components/SetupGuide.jsx';
+import { useState, useMemo, useEffect } from 'react';
 import {
   MetricCard,
   StatsGrid,
@@ -37,12 +37,48 @@ export const loader = async ({ request }) => {
   console.log("pixelActivation", pixelActivation);
 
   const cleanedShop = session.shop;
+  const shop = cleanedShop
+  const shopSlug = shop?.replace?.('.myshopify.com', '') || shop;
+
+  const settings = await prisma.alertSettings.findUnique({
+    where: { shop },
+    select: {
+      conversionRateLow: true,
+      conversionRateThreshold: true, // 👈 include threshold
+      sendConversionAlert: true,
+      slackWebhookUrl: true,
+      slackEnabled: true,
+    },
+  });
+
+  if (!settings) {
+    return json({ 
+      conversionRateLow: false,
+      shop: cleanedShop,
+      shopSlug,
+      settings: null,
+      dailyStats: [],
+      totalSessionCount: 0,
+      totalOrderCount: 0,
+      overallConversionRate: 0,
+      totalBouncedSessions: 0,
+      totalInitiatedCheckouts: 0,
+      overallBounceRate: 0,
+      overallCheckoutInitiationRate: 0,
+      SHOPIFY_APP_URL: process.env.SHOPIFY_APP_URL,
+      conversionRateThreshold: 0
+    });
+  }
+
+  const { conversionRateLow, conversionRateThreshold, sendConversionAlert } = settings;
+
 
   const SHOPIFY_APP_URL = process.env.SHOPIFY_APP_URL;
 
-  const allSessions = await prisma.sessionCheckout.findMany({
-    where: { shop: cleanedShop },
-    select: { createdAt: true, pageViews: true, hasInitiatedCheckout: true },
+  try {
+    const allSessions = await prisma.sessionCheckout.findMany({
+      where: { shop: cleanedShop },
+      select: { createdAt: true, pageViews: true, hasInitiatedCheckout: true },
     orderBy: { createdAt: 'desc' },
   });
 
@@ -146,35 +182,69 @@ export const loader = async ({ request }) => {
     ? Math.min((totalInitiatedCheckouts / totalSessionCount) * 100, 100).toFixed(2)
     : '0.00';
 
-  return json({
-    shop: cleanedShop,
-    dailyStats,
-    totalSessionCount,
-    totalOrderCount,
-    overallConversionRate: parseFloat(overallConversionRate),
-    totalBouncedSessions,
-    totalInitiatedCheckouts,
-    overallBounceRate: parseFloat(overallBounceRate),
-    overallCheckoutInitiationRate: parseFloat(overallCheckoutInitiationRate),
-    SHOPIFY_APP_URL
-  });
-};
+    return json({
+      shop: cleanedShop,
+      shopSlug,
+      settings,
+      dailyStats,
+      totalSessionCount,
+      totalOrderCount,
+      overallConversionRate: parseFloat(overallConversionRate),
+      totalBouncedSessions,
+      totalInitiatedCheckouts,
+      overallBounceRate: parseFloat(overallBounceRate),
+      overallCheckoutInitiationRate: parseFloat(overallCheckoutInitiationRate),
+      SHOPIFY_APP_URL,
+      conversionRateLow,
+      conversionRateThreshold,
+      sendConversionAlert
+    });
+  } catch (error) {
+    console.error('Error in loader:', error);
+    // Return safe defaults on error
+    return json({
+      shop: cleanedShop,
+      shopSlug,
+      settings: null,
+      dailyStats: [],
+      totalSessionCount: 0,
+      totalOrderCount: 0,
+      overallConversionRate: 0,
+      totalBouncedSessions: 0,
+      totalInitiatedCheckouts: 0,
+      overallBounceRate: 0,
+      overallCheckoutInitiationRate: 0,
+      SHOPIFY_APP_URL,
+      conversionRateLow,
+      conversionRateThreshold: conversionRateThreshold || 0,
+      sendConversionAlert: false,
+    });
+  }
+}
 
 export default function SessionCountPage() {
   const {
     shop,
-    dailyStats,
-    totalSessionCount,
-    totalOrderCount,
-    overallConversionRate,
-    totalBouncedSessions,
-    totalInitiatedCheckouts,
-    overallBounceRate,
-    overallCheckoutInitiationRate,
-    SHOPIFY_APP_URL
+    shopSlug,
+    settings,
+    dailyStats = [],
+    totalSessionCount = 0,
+    totalOrderCount = 0,
+    overallConversionRate = 0,
+    totalBouncedSessions = 0,
+    totalInitiatedCheckouts = 0,
+    overallBounceRate = 0,
+    overallCheckoutInitiationRate = 0,
+    SHOPIFY_APP_URL,
+    conversionRateLow = false,
+    conversionRateThreshold = 0,
+    sendConversionAlert
   } = useLoaderData();
 
+  const triggerFetcher = useFetcher()
+
   const isClient = useClientOnly();
+  const [alert, setAlert] = useState("");
 
   // Search and pagination for daily stats table
   const searchableFields = [
@@ -191,6 +261,39 @@ export default function SessionCountPage() {
     searchableFields
   );
 
+  const triggerDummyAlert = (type) => {
+    triggerFetcher.submit({ type }, {
+      method: "post",
+      action: "/app/settings/trigger",
+      encType: "application/json"
+    });
+    setAlert(type);
+    setTimeout(() => setAlert(""), 3000);
+  };
+
+  useEffect(() => {    
+    // Send alert only when conversion rate is below threshold AND flag is false
+    if (overallConversionRate < conversionRateThreshold && conversionRateLow === true && sendConversionAlert === false) {
+      triggerDummyAlert('conversionRateLow')
+      
+      // Set the flag to true to prevent repeated alerts
+      triggerFetcher.submit({ type: 'setSendConversionAlert', value: true }, {
+        method: "post",
+        action: "/app/settings/update",
+        encType: "application/json"
+      });
+    }
+    
+    // Reset the flag when conversion rate returns to safe zone
+    if (overallConversionRate >= conversionRateThreshold && sendConversionAlert === true) {
+      triggerFetcher.submit({ type: 'setSendConversionAlert', value: false }, {
+        method: "post",
+        action: "/app/settings/update",
+        encType: "application/json"
+      });
+    }
+  }, [overallConversionRate, conversionRateThreshold, conversionRateLow, sendConversionAlert])
+
   const {
     currentPage,
     totalPages,
@@ -203,7 +306,7 @@ export default function SessionCountPage() {
 
   // Prepare chart data
   const chartData = useMemo(() => {
-    return [...dailyStats].sort((a, b) => new Date(a.date) - new Date(b.date));
+    return [...(dailyStats || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [dailyStats]);
 
   // Prepare table data
@@ -234,8 +337,20 @@ export default function SessionCountPage() {
   }
 
   return (
-    <Page title="Performance Analytics" fullWidth>
+    <Page 
+      title="Performance Analytics" 
+      fullWidth
+      secondaryActions={[
+        {
+          content: "Settings",
+          url: "/app/settings",
+          accessibilityLabel: "Go to app settings"
+        }
+      ]}
+    >
       <BlockStack gap="400">
+        {/* Setup Guide – hidden automatically when complete or dismissed */}
+        <SetupGuideExample settings={settings || {}} shopSlug={shopSlug} />
         {/* Key Metrics Grid */}
         <StatsGrid columns={{ xs: 2, sm: 3, md: 4, lg: 6 }}>
           {/* Total Sessions */}

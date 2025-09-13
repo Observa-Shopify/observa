@@ -158,9 +158,7 @@
 
             // const baseUrl = process.env.SHOPIFY_APP_URL;
 
-            const APP_URL='https://observa-two.vercel.app'
-
-            fetch(`${APP_URL}/api/vitals`, {
+            fetch(`https://observa-two.vercel.app/api/vitals`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(metrics)

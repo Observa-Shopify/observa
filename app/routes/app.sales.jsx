@@ -1,5 +1,5 @@
 import { json } from "@remix-run/node";
-import { useLoaderData, useNavigation } from "@remix-run/react";
+import { useFetcher, useLoaderData, useNavigation } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
 import {
   Page,
@@ -7,14 +7,14 @@ import {
   EmptyState,
   Spinner,
 } from "@shopify/polaris";
-import React, { useMemo } from 'react';
-import { 
-  MetricCard, 
-  StatsGrid, 
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  MetricCard,
+  StatsGrid,
   EnhancedDataTable,
-  LoadingState 
+  LoadingState
 } from '../components/shared';
-import { 
+import {
   usePagination,
   APP_CONSTANTS,
   formatDate,
@@ -22,6 +22,7 @@ import {
   calculatePercentageChange,
   getBadgeTone
 } from '../utils';
+import prisma from '../db.server';
 
 
 // Helper function to format date for display
@@ -46,48 +47,74 @@ export const loader = async ({ request }) => {
   const now = new Date();
   const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+  const shop = session.shop
 
-  const ordersResponse = await admin.graphql(
-    `#graphql
-    query getRecentOrders($first: Int!) {
-      orders(first: $first, reverse: true) {
-        edges {
-          node {
-            id
-            name
-            totalPriceSet {
-              shopMoney {
-                amount
-                currencyCode
+  const settings = await prisma.alertSettings.findUnique({
+    where: { shop },
+    select: {
+      orderGrowthLow: true,
+      sendSalesAlert: true,
+    },
+  });
+
+  if (!settings) {
+    return json({ orderGrowthLow: false, sendSalesAlert: false });
+  }
+
+  const { orderGrowthLow, sendSalesAlert } = settings;
+
+  // console.log("settt", settings)
+
+  let allOrders = [];
+  let totalSales = 0;
+
+  try {
+    const ordersResponse = await admin.graphql(
+      `#graphql
+      query getRecentOrders($first: Int!) {
+        orders(first: $first, reverse: true) {
+          edges {
+            node {
+              id
+              name
+              totalPriceSet {
+                shopMoney {
+                  amount
+                  currencyCode
+                }
               }
+              createdAt
             }
-            createdAt
           }
         }
+      }`,
+      {
+        variables: {
+          first: 100 // Fetch up to 100 recent orders for analytics calculation
+        }
       }
-    }`,
-    {
-      variables: {
-        first: 100 // Fetch up to 100 recent orders for analytics calculation
-      }
-    }
-  );
+    );
 
-  const ordersData = await ordersResponse.json();
-  const orderEdges = ordersData?.data?.orders?.edges ?? [];
+    const ordersData = await ordersResponse.json();
+    const orderEdges = ordersData?.data?.orders?.edges ?? [];
 
-  const allOrders = orderEdges.map(edge => ({
-    id: edge.node.id,
-    name: edge.node.name,
-    amount: parseFloat(edge.node.totalPriceSet.shopMoney.amount),
-    currencyCode: edge.node.totalPriceSet.shopMoney.currencyCode,
-    createdAt: edge.node.createdAt,
-    createdAtDate: new Date(edge.node.createdAt)
-  }));
+    allOrders = orderEdges.map(edge => ({
+      id: edge.node.id,
+      name: edge.node.name,
+      amount: parseFloat(edge.node.totalPriceSet.shopMoney.amount),
+      currencyCode: edge.node.totalPriceSet.shopMoney.currencyCode,
+      createdAt: edge.node.createdAt,
+      createdAtDate: new Date(edge.node.createdAt)
+    }));
 
-  allOrders.sort((a, b) => b.createdAtDate.getTime() - a.createdAtDate.getTime());
-
-  const totalSales = allOrders.reduce((acc, order) => acc + order.amount, 0);
+    allOrders.sort((a, b) => b.createdAtDate.getTime() - a.createdAtDate.getTime());
+    totalSales = allOrders.reduce((acc, order) => acc + order.amount, 0);
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    // Return safe defaults
+    allOrders = [];
+    totalSales = 0;
+  }
 
   let current7DaysSales = 0;
   let previous7DaysSales = 0;
@@ -146,7 +173,7 @@ export const loader = async ({ request }) => {
   console.log("now (UTC ms):", now.getTime(), now.toISOString());
   console.log("sevenDaysAgo (UTC ms):", sevenDaysAgo.getTime(), sevenDaysAgo.toISOString());
   console.log("fourteenDaysAgo (UTC ms):", fourteenDaysAgo.getTime(), fourteenDaysAgo.toISOString());
-  console.log("allOrders (first 2):", allOrders.slice(0,2).map(o => ({name: o.name, createdAt: o.createdAt, createdAtDate: o.createdAtDate.toISOString()})));
+  console.log("allOrders (first 2):", allOrders.slice(0, 2).map(o => ({ name: o.name, createdAt: o.createdAt, createdAtDate: o.createdAtDate.toISOString() })));
   console.log("current7DaysSales:", current7DaysSales.toFixed(2), "count:", current7DaysOrderCount);
   console.log("previous7DaysSales:", previous7DaysSales.toFixed(2), "count:", previous7DaysOrderCount);
   console.log("salesGrowthStatus:", salesGrowthStatus);
@@ -164,20 +191,28 @@ export const loader = async ({ request }) => {
     averageOrderValueGrowthPercentage,
     current7DaysSales,
     previous7DaysSales,
+    orderGrowthLow,
+    sendSalesAlert
   });
 };
 
 export default function SalesDashboard() {
   const {
-    orders,
-    totalSales,
+    orders = [], // Add default empty array
+    totalSales = 0,
     salesGrowthStatus,
     salesGrowthPercentage,
     averageOrderValueGrowthStatus,
     averageOrderValueGrowthPercentage,
-    current7DaysSales,
-    previous7DaysSales,
+    current7DaysSales = 0,
+    previous7DaysSales = 0,
+    orderGrowthLow,
+    sendSalesAlert
   } = useLoaderData();
+    const triggerFetcher = useFetcher();
+      const [alert, setAlert] = useState("");
+    
+  
 
   const navigation = useNavigation();
   const isLoading = navigation.state === 'loading' || navigation.state === 'submitting';
@@ -191,7 +226,7 @@ export default function SalesDashboard() {
     handlePreviousPage,
     hasNextPage,
     hasPreviousPage,
-  } = usePagination(orders, APP_CONSTANTS.DEFAULT_ITEMS_PER_PAGE);
+  } = usePagination(orders || [], APP_CONSTANTS.DEFAULT_ITEMS_PER_PAGE);
 
   // Prepare table data
   const tableRows = paginatedOrders.map(order => [
@@ -203,11 +238,11 @@ export default function SalesDashboard() {
   const tableColumns = ['Order Name', 'Total Price', 'Created At'];
 
   // Calculate average order value
-  const currentAOV = current7DaysSales / (orders.filter(o => 
+  const currentAOV = current7DaysSales / ((orders || []).filter(o =>
     new Date(o.createdAt) >= new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
   ).length || 1);
 
-  const previousAOV = previous7DaysSales / (orders.filter(o => {
+  const previousAOV = previous7DaysSales / ((orders || []).filter(o => {
     const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
     const twoWeeksAgo = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
     const orderDate = new Date(o.createdAt);
@@ -224,6 +259,47 @@ export default function SalesDashboard() {
     GOOD: 5,
     AVERAGE: 0
   });
+
+  const triggerDummyAlert = (type) => {
+    console.log("ddddddddddddddddddddddd")
+    triggerFetcher.submit({ type }, {
+      method: "post",
+      action: "/app/settings/trigger",
+      encType: "application/json"
+    });
+    setAlert(type);
+    setTimeout(() => setAlert(""), 3000);
+  };
+
+  useEffect(() => {
+    console.log("orderGrowthLow", orderGrowthLow)
+    console.log("sendSalesAlert", sendSalesAlert)
+    console.log("current7DaysSales", current7DaysSales)
+    console.log("previous7DaysSales", previous7DaysSales)
+    
+    // Send alert only when sales are down AND flag is false
+    if (orderGrowthLow === true && current7DaysSales < previous7DaysSales && sendSalesAlert === false) {
+      console.log("sales growth is low, sending alert")
+      triggerDummyAlert('orderGrowthLow')
+      
+      // Set the flag to true to prevent repeated alerts
+      triggerFetcher.submit({ type: 'setSendSalesAlert', value: true }, {
+        method: "post",
+        action: "/app/settings/update",
+        encType: "application/json"
+      });
+    }
+    
+    // Reset the flag when sales return to safe zone
+    if (current7DaysSales >= previous7DaysSales && sendSalesAlert === true) {
+      console.log("sales growth is back to safe zone, resetting alert flag")
+      triggerFetcher.submit({ type: 'setSendSalesAlert', value: false }, {
+        method: "post",
+        action: "/app/settings/update",
+        encType: "application/json"
+      });
+    }
+  }, [current7DaysSales, previous7DaysSales, orderGrowthLow, sendSalesAlert])  
 
   if (isLoading) {
     return (
@@ -248,8 +324,8 @@ export default function SalesDashboard() {
 
           <MetricCard
             title="Sales Growth (7 days)"
-            value={salesGrowthStatus === 'N/A' || salesGrowthStatus === 'No Sales Data' 
-              ? salesGrowthStatus 
+            value={salesGrowthStatus === 'N/A' || salesGrowthStatus === 'No Sales Data'
+              ? salesGrowthStatus
               : `${salesGrowthPercentage.toFixed(2)}%`}
             formatValue={false}
             subtitle={`Current: ${formatCurrency(current7DaysSales)} | Previous: ${formatCurrency(previous7DaysSales)}`}
@@ -258,8 +334,8 @@ export default function SalesDashboard() {
 
           <MetricCard
             title="Avg. Order Value Growth"
-            value={averageOrderValueGrowthStatus === 'N/A' || averageOrderValueGrowthStatus === 'No AOV Data' 
-              ? averageOrderValueGrowthStatus 
+            value={averageOrderValueGrowthStatus === 'N/A' || averageOrderValueGrowthStatus === 'No AOV Data'
+              ? averageOrderValueGrowthStatus
               : `${averageOrderValueGrowthPercentage.toFixed(2)}%`}
             formatValue={false}
             subtitle={`Current AOV: ${formatCurrency(currentAOV)} | Previous: ${formatCurrency(previousAOV)}`}
@@ -268,13 +344,13 @@ export default function SalesDashboard() {
         </StatsGrid>
 
         {/* Orders Table */}
-        {orders.length === 0 ? (
+        {(orders || []).length === 0 ? (
           <EmptyState
             heading="No orders found"
-            action={{ 
-              content: 'Go to Shopify admin', 
+            action={{
+              content: 'Go to Shopify admin',
               url: 'https://admin.shopify.com',
-              external: true 
+              external: true
             }}
             image="https://cdn.shopify.com/s/files/1/0262/4071/2726/files/emptystate-files.png"
           >

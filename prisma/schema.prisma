@@ -10,7 +10,7 @@ generator client {
 // See https://www.prisma.io/docs/orm/reference/prisma-schema-reference#string for more information
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = env("DATABASE_URL_DEV")
 }
 
 model Session {
@@ -91,4 +91,25 @@ model SessionCheckout {
   updatedAt            DateTime  @updatedAt // Last time the session record was updated
   pageViews            Int       @default(1) // Number of page views within this session
   hasInitiatedCheckout Boolean   @default(false) // Whether this session initiated a checkout
+}
+
+
+model AlertSettings {
+  id                    String   @id @default(uuid())
+  shop                  String // Shopify shop domain or identifier
+  revenueRateLow        Boolean  @default(false)
+  orderGrowthLow        Boolean  @default(false)
+  trafficRateLow        Boolean  @default(false)
+  conversionRateLow     Boolean  @default(false)
+  conversionRateThreshold Float?
+  alertEmail            String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  slackWebhookUrl       String? // New field for Slack webhook
+  slackEnabled          Boolean  @default(false) // New field to enable/disable Slack
+  sendConversionAlert   Boolean  @default(false) // Flag to prevent repeated conversion alerts
+  sendSalesAlert        Boolean  @default(false) // Flag to prevent repeated sales alerts
+  sendTrafficAlert      Boolean  @default(false) // Flag to prevent repeated traffic alerts
+
+  @@unique([shop])
 }
