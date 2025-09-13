@@ -42,6 +42,14 @@ function getEmailTemplate(type, shop) {
             Review product pages, checkout experience, and promotions.
           `
         };
+      case "emailTest":
+        return {
+          title: "✉️ Test Email Delivery",
+          body: `
+            This is a <strong>test email</strong> from your Observa monitoring app for <strong>${shop}</strong>.<br><br>
+            Please locate this email in your inbox (and spam folder if necessary) and mark it as <strong>Not Spam</strong> to improve future deliverability.
+          `
+        };
       default:
         return {
           title: "⚠️ Unknown Alert",
@@ -103,6 +111,8 @@ function getSlackMessage(type, shop) {
       return `🚨 Low Traffic Rate detected in *${shop}*. Consider boosting ads, SEO, or campaigns.`;
     case "conversionRateLow":
       return `🚨 Low Conversion Rate detected in *${shop}*. Many visitors are not converting to customers.`;
+    case "emailTest":
+      return `✉️ Test Email: This is a test alert from your Observa monitoring app for *${shop}*.`;
     default:
       return `⚠️ Unknown alert type received for *${shop}*.`;
   }
@@ -136,6 +146,11 @@ async function sendAlert(type, shop, settings) {
       isEmailEnabled = settings.conversionRateLow;
       isSlackEnabled = slackEnabled && settings.conversionRateLow;
       alertMessage = "🚨 Shopify Alert: Low Conversion Rate detected for your store.";
+      break;
+    case "emailTest":
+      isEmailEnabled = true; // Always send test emails if email is configured
+      isSlackEnabled = false; // Don't send test emails to Slack
+      alertMessage = "✉️ Test Email: Email delivery test from your Observa monitoring app.";
       break;
     default:
       console.error("Unknown alert type:", type);
