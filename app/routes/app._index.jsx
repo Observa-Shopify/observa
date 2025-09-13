@@ -1,13 +1,13 @@
 
 import { json } from '@remix-run/node';
-import { useFetcher, useLoaderData } from '@remix-run/react';
+import { useLoaderData } from '@remix-run/react';
 import { authenticate } from '../shopify.server';
 import prisma from '../db.server';
 import {
   Page,
   BlockStack,
 } from '@shopify/polaris';
-import { useState, useMemo, useEffect } from 'react';
+import { useMemo } from 'react';
 import {
   MetricCard,
   StatsGrid,
@@ -27,6 +27,7 @@ import {
   formatDate
 } from '../utils';
 import { createWebPixel } from '../helpers/webPixel.server';
+import { checkAllAlerts } from '../helpers/alertService.server';
 
 // --- Loader Function ---
 export const loader = async ({ request }) => {
@@ -179,6 +180,15 @@ export const loader = async ({ request }) => {
     ? Math.min((totalInitiatedCheckouts / totalSessionCount) * 100, 100).toFixed(2)
     : '0.00';
 
+    // Check alerts automatically when dashboard loads
+    console.log('Checking alerts for shop:', cleanedShop);
+    try {
+      const alertResults = await checkAllAlerts(cleanedShop, admin);
+      console.log('Alert check results:', alertResults);
+    } catch (error) {
+      console.error('Error checking alerts:', error);
+    }
+
     return json({
       shop: cleanedShop,
       dailyStats,
@@ -232,12 +242,7 @@ export default function SessionCountPage() {
     sendConversionAlert
   } = useLoaderData();
 
-  const triggerFetcher = useFetcher()
-
   const isClient = useClientOnly();
-  const [alert, setAlert] = useState("");
-
-  console.log("object11111111111111",conversionRateLow, conversionRateThreshold, sendConversionAlert)
 
 
   // Search and pagination for daily stats table
@@ -255,45 +260,6 @@ export default function SessionCountPage() {
     searchableFields
   );
 
-  const triggerDummyAlert = (type) => {
-    console.log("ccccccccccc")
-    triggerFetcher.submit({ type }, {
-      method: "post",
-      action: "/app/settings/trigger",
-      encType: "application/json"
-    });
-    setAlert(type);
-    setTimeout(() => setAlert(""), 3000);
-  };
-
-  useEffect(() => {
-    console.log("conversionRateThreshold", conversionRateThreshold)
-    console.log("conversionRateLow", conversionRateLow)
-    console.log("sendConversionAlert", sendConversionAlert)
-    
-    // Send alert only when conversion rate is below threshold AND flag is false
-    if (overallConversionRate < conversionRateThreshold && conversionRateLow === true && sendConversionAlert === false) {
-      console.log("conversion rate is low, sending alert")
-      triggerDummyAlert('conversionRateLow')
-      
-      // Set the flag to true to prevent repeated alerts
-      triggerFetcher.submit({ type: 'setSendConversionAlert', value: true }, {
-        method: "post",
-        action: "/app/settings/update",
-        encType: "application/json"
-      });
-    }
-    
-    // Reset the flag when conversion rate returns to safe zone
-    if (overallConversionRate >= conversionRateThreshold && sendConversionAlert === true) {
-      console.log("conversion rate is back to safe zone, resetting alert flag") 
-      triggerFetcher.submit({ type: 'setSendConversionAlert', value: false }, {
-        method: "post",
-        action: "/app/settings/update",
-        encType: "application/json"
-      });
-    }
-  }, [overallConversionRate, conversionRateThreshold, conversionRateLow, sendConversionAlert])
 
   const {
     currentPage,

@@ -1,5 +1,5 @@
 import { json } from "@remix-run/node";
-import { useFetcher, useLoaderData, useNavigation } from "@remix-run/react";
+import { useLoaderData, useNavigation } from "@remix-run/react";
 import { authenticate } from "../shopify.server";
 import {
   Page,
@@ -7,7 +7,7 @@ import {
   EmptyState,
   Spinner,
 } from "@shopify/polaris";
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import {
   MetricCard,
   StatsGrid,
@@ -23,6 +23,7 @@ import {
   getBadgeTone
 } from '../utils';
 import prisma from '../db.server';
+import { checkAllAlerts } from '../helpers/alertService.server';
 
 
 // Helper function to format date for display
@@ -182,6 +183,15 @@ export const loader = async ({ request }) => {
   console.log("averageOrderValueGrowthPercentage:", averageOrderValueGrowthPercentage.toFixed(2));
   console.log("-------------------");
 
+  // Check alerts automatically when dashboard loads
+  console.log('Checking alerts for shop:', shop);
+  try {
+    const alertResults = await checkAllAlerts(shop, admin);
+    console.log('Alert check results:', alertResults);
+  } catch (error) {
+    console.error('Error checking alerts:', error);
+  }
+
   return json({
     orders: allOrders,
     totalSales,
@@ -209,11 +219,6 @@ export default function SalesDashboard() {
     orderGrowthLow,
     sendSalesAlert
   } = useLoaderData();
-    const triggerFetcher = useFetcher();
-      const [alert, setAlert] = useState("");
-    
-  
-
   const navigation = useNavigation();
   const isLoading = navigation.state === 'loading' || navigation.state === 'submitting';
 
@@ -260,46 +265,6 @@ export default function SalesDashboard() {
     AVERAGE: 0
   });
 
-  const triggerDummyAlert = (type) => {
-    console.log("ddddddddddddddddddddddd")
-    triggerFetcher.submit({ type }, {
-      method: "post",
-      action: "/app/settings/trigger",
-      encType: "application/json"
-    });
-    setAlert(type);
-    setTimeout(() => setAlert(""), 3000);
-  };
-
-  useEffect(() => {
-    console.log("orderGrowthLow", orderGrowthLow)
-    console.log("sendSalesAlert", sendSalesAlert)
-    console.log("current7DaysSales", current7DaysSales)
-    console.log("previous7DaysSales", previous7DaysSales)
-    
-    // Send alert only when sales are down AND flag is false
-    if (orderGrowthLow === true && current7DaysSales < previous7DaysSales && sendSalesAlert === false) {
-      console.log("sales growth is low, sending alert")
-      triggerDummyAlert('orderGrowthLow')
-      
-      // Set the flag to true to prevent repeated alerts
-      triggerFetcher.submit({ type: 'setSendSalesAlert', value: true }, {
-        method: "post",
-        action: "/app/settings/update",
-        encType: "application/json"
-      });
-    }
-    
-    // Reset the flag when sales return to safe zone
-    if (current7DaysSales >= previous7DaysSales && sendSalesAlert === true) {
-      console.log("sales growth is back to safe zone, resetting alert flag")
-      triggerFetcher.submit({ type: 'setSendSalesAlert', value: false }, {
-        method: "post",
-        action: "/app/settings/update",
-        encType: "application/json"
-      });
-    }
-  }, [current7DaysSales, previous7DaysSales, orderGrowthLow, sendSalesAlert])  
 
   if (isLoading) {
     return (
