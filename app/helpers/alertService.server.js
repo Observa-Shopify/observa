@@ -119,7 +119,7 @@ function getSlackMessage(type, shop) {
 }
 
 // -------------------- Send Alert Function --------------------
-async function sendAlert(type, shop, settings) {
+export async function sendAlert(type, shop, settings) {
   const { alertEmail, slackWebhookUrl, slackEnabled } = settings;
 
   let isEmailEnabled = false;
