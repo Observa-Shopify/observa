@@ -38,7 +38,14 @@ export const action = async ({ request }) => {
     // Validate required fields
     if (!shop || !sessionId || !eventName) {
       console.error('[API] Missing required data in pixel payload:', { shop, sessionId, eventName });
-      return json({ error: 'Missing shop, sessionId, or eventName' }, { status: 400 });
+      return json({ error: 'Missing shop, sessionId, or eventName' }, { 
+        status: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type',
+        },
+      });
     }
 
     // Normalize the shop domain
@@ -92,6 +99,13 @@ export const action = async ({ request }) => {
     );
   } catch (error) {
     console.error('[API] Pixel payload tracking error:', error);
-    return json({ error: 'Server error', details: error.message }, { status: 500 });
+    return json({ error: 'Server error', details: error.message }, { 
+      status: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+    });
   }
 };
