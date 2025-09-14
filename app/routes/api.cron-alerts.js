@@ -1,6 +1,5 @@
 import { json } from "@remix-run/node";
 import prisma from "../db.server";
-import { checkAllAlerts } from "../helpers/alertService.server";
 
 // This endpoint can be called by a cron service like Vercel Cron, GitHub Actions, or any external cron service
 export const loader = async ({ request }) => {
