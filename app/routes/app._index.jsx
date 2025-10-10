@@ -28,6 +28,7 @@ import {
 } from '../utils';
 import { createWebPixel } from '../helpers/webPixel.server';
 import { checkAllAlerts } from '../helpers/alertService.server';
+import { useMantle } from '@heymantle/react';
 
 // --- Loader Function ---
 export const loader = async ({ request }) => {
@@ -252,6 +253,9 @@ export default function SessionCountPage() {
   } = useLoaderData();
 
   const isClient = useClientOnly();
+  
+  // Get Mantle subscription data
+  const { customer, subscription } = useMantle();
 
   // Search and pagination for daily stats table
   const searchableFields = [
@@ -316,6 +320,11 @@ export default function SessionCountPage() {
       fullWidth
       secondaryActions={[
         {
+          content: "Plans",
+          url: "/app/plans",
+          accessibilityLabel: "View and manage subscription plans"
+        },
+        {
           content: "Settings",
           url: "/app/settings",
           accessibilityLabel: "Go to app settings"
@@ -324,7 +333,7 @@ export default function SessionCountPage() {
     >
       <BlockStack gap="400">
         {/* Setup Guide – hidden automatically when complete or dismissed */}
-        <SetupGuideExample settings={settings || {}} shopSlug={shopSlug} />
+        <SetupGuideExample settings={settings || {}} shopSlug={shopSlug} subscription={subscription} />
         {/* Key Metrics Grid */}
         <StatsGrid columns={{ xs: 2, sm: 3, md: 4, lg: 6 }}>
           {/* Total Sessions */}

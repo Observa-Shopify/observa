@@ -1,4 +1,7 @@
 name = "observa pixel"
+
+uid = "8616c814-9a76-7035-ef3c-42b9098cfbcbad244235"
+
 type = "web_pixel_extension"
 
 
