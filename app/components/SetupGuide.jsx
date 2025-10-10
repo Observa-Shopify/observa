@@ -31,15 +31,32 @@ const outlineSvg = (
   </svg>
 );
 
-function buildItems(settings, shopSlug) {
+function buildItems(settings, shopSlug, subscription) {
   const hasSlack = Boolean(settings?.slackWebhookUrl);
   const slackEnabled = Boolean(settings?.slackEnabled);
   const hasEmail = Boolean(settings?.alertEmail);
   const themeEditorUrl = `https://admin.shopify.com/store/${shopSlug}/themes/current/editor?context=apps`;
+  const hasActiveSubscription = Boolean(subscription?.id);
 
-  return [
+  const items = [
     {
       id: 0,
+      title: 'Subscribe to a Plan',
+      description: hasActiveSubscription
+        ? `You're currently subscribed to the ${subscription?.plan?.name || 'a plan'}. You can upgrade or change your plan anytime.`
+        : 'Choose a plan that fits your needs to unlock all features and start monitoring your store performance.',
+      image: {
+        url: 'https://cdn.shopify.com/shopifycloud/shopify/assets/admin/home/onboarding/detail-images/home-onboard-share-store-b265242552d9ed38399455a5e4472c147e421cb43d72a0db26d2943b55bdb307.svg',
+        alt: 'Subscription plan illustration',
+      },
+      complete: hasActiveSubscription,
+      primaryButton: {
+        content: hasActiveSubscription ? 'Manage Plan' : 'View Plans',
+        props: { url: '/app/plans' },
+      },
+    },
+    {
+      id: 1,
       title: 'Connect Slack (Incoming Webhook)',
       description:
         'Create a Slack app webhook and paste the URL in Settings → Notification Settings → Slack Webhook URL, then enable Slack notifications.',
@@ -54,7 +71,7 @@ function buildItems(settings, shopSlug) {
       },
     },
     {
-      id: 1,
+      id: 2,
       title: 'Enable App Embed in Theme',
       description:
         'Open your Online Store Theme Editor and enable the Observa app embed so traffic tracking works across your storefront.',
@@ -75,7 +92,7 @@ function buildItems(settings, shopSlug) {
       },
     },
     {
-      id: 2,
+      id: 3,
       title: 'Test Email & Mark Not Spam',
       description: hasEmail
         ? "Send a test email, locate it (inbox or spam), mark it 'Not spam' to improve deliverability, then mark this step complete."
@@ -109,7 +126,7 @@ function buildItems(settings, shopSlug) {
             props: {
               onClick: () => {
                 if (typeof window !== 'undefined') {
-                  window.dispatchEvent(new CustomEvent('complete-step', { detail: { id: 2 } }));
+                  window.dispatchEvent(new CustomEvent('complete-step', { detail: { id: 3 } }));
                 }
               },
             },
@@ -117,10 +134,12 @@ function buildItems(settings, shopSlug) {
         : undefined,
     },
   ];
+  
+  return items;
 }
 
-export const SetupGuideExample = ({ settings, shopSlug }) => {
-  const [items, setItems] = useState(buildItems(settings, shopSlug));
+export const SetupGuideExample = ({ settings, shopSlug, subscription }) => {
+  const [items, setItems] = useState(buildItems(settings, shopSlug, subscription));
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
